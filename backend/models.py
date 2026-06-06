@@ -1,0 +1,55 @@
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey
+from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
+from database import Base
+
+
+class Aircraft(Base):
+    __tablename__ = "aircraft"
+
+    id = Column(Integer, primary_key=True, index=True)
+    registration = Column(String, unique=True, nullable=False)  # PR-ABC
+    model = Column(String, nullable=False)                      # Cessna 172
+    category = Column(String, default="SEP")                   # SEP, MEP, JET, etc.
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    flights = relationship("Flight", back_populates="aircraft")
+
+
+class Airport(Base):
+    __tablename__ = "airports"
+
+    icao = Column(String(4), primary_key=True)
+    iata = Column(String(3), nullable=True)
+    name = Column(String, nullable=False)
+    city = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+
+
+class Flight(Base):
+    __tablename__ = "flights"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(DateTime, nullable=False)
+
+    origin_icao = Column(String(4), ForeignKey("airports.icao"), nullable=False)
+    destination_icao = Column(String(4), ForeignKey("airports.icao"), nullable=False)
+
+    aircraft_id = Column(Integer, ForeignKey("aircraft.id"), nullable=False)
+
+    departure_time = Column(DateTime, nullable=False)   # block out
+    arrival_time = Column(DateTime, nullable=False)     # block in
+    airborne_time = Column(Float, nullable=True)        # horas em voo (opcional)
+
+    role = Column(String, default="PIC")                # PIC, SIC, Dual, Solo
+    flight_rules = Column(String, default="VFR")        # VFR, IFR
+    day_night = Column(String, default="DAY")           # DAY, NIGHT, MIXED
+
+    remarks = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    aircraft = relationship("Aircraft", back_populates="flights")
+    origin = relationship("Airport", foreign_keys=[origin_icao])
+    destination = relationship("Airport", foreign_keys=[destination_icao])

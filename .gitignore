@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+backend/build/
+backend/dist/
+backend/*.spec
+backend/logbook.db
+
+# Node
+node_modules/
+frontend/node_modules/
+dist-electron/
+frontend/dist/
+
+# Electron build
+.last-backend-build
+
+# Logs
+*.log
+flightlog-dev.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Assets source (só manter o .ico final)
+assets/icon-source.png
+assets/*.jpg

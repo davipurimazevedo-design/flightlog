@@ -1,0 +1,56 @@
+{
+  "name": "flightlog",
+  "version": "1.9.3",
+  "description": "Logbook de aviação militar",
+  "main": "electron/main.js",
+  "author": "FlightLog",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build-frontend": "cd frontend && npm install && npm run build",
+    "dist": "npm run build-frontend && electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "br.mil.flightlog",
+    "productName": "FlightLog",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "frontend/dist",
+        "to": "../frontend/dist"
+      },
+      {
+        "from": "backend/dist/flightlog-backend.exe",
+        "to": "flightlog-backend.exe"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": false,
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "FlightLog",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}
