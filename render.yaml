@@ -5,7 +5,7 @@ services:
   - type: web
     name: flightlog-api
     runtime: python
-    rootDir: flight-logbook/backend
+    rootDir: backend
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT

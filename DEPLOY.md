@@ -61,7 +61,7 @@ Opção A — **Blueprint** (usa o `render.yaml` já incluído):
    (pode deixar em branco — a auth valida por JWKS).
 
 Opção B — **manual** (New → Web Service):
-- Root Directory: `flight-logbook/backend`
+- Root Directory: `backend`
 - Branch: `master`
 - Runtime: Python 3
 - Build: `pip install -r requirements.txt`
@@ -80,7 +80,7 @@ Depois do deploy, anote a URL: `https://flightlog-api.onrender.com` → vai em `
 
 1. Vercel → **Add New → Project** → importe o repo.
 2. Configure:
-   - **Root Directory**: `flight-logbook/frontend`
+   - **Root Directory**: `frontend`
    - Framework Preset: **Vite** (auto)
    - Build/Output: padrão (`npm run build` → `dist`)
 3. **Environment Variables**:
