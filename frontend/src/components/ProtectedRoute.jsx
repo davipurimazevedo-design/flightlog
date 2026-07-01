@@ -1,32 +1,20 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import PendingApproval from '../pages/PendingApproval'
-
-function FullScreen({ children }) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#060f1e] text-slate-400">
-      {children}
-    </div>
-  )
-}
-
-const Spinner = () => (
-  <FullScreen>
-    <span className="w-6 h-6 border-2 border-white/20 border-t-blue-400 rounded-full animate-spin" />
-  </FullScreen>
-)
+import SplashScreen from './SplashScreen'
 
 /**
  * Portão de acesso ao app. Sem auth (desktop/dev) libera direto.
  * Com auth: exige sessão + conta ativa; senão manda pro login ou tela de espera.
+ * Enquanto sessão/perfil carregam (inclui o cold start do backend), mostra a splash.
  */
 export function Protected({ children }) {
   const { authEnabled, loading, session, profile } = useAuth()
 
   if (!authEnabled) return children
-  if (loading) return <Spinner />
+  if (loading) return <SplashScreen />
   if (!session) return <Navigate to="/login" replace />
-  if (!profile) return <Spinner />
+  if (!profile) return <SplashScreen />
   if (profile.status !== 'active') return <PendingApproval status={profile.status} />
   return children
 }

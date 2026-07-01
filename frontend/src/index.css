@@ -39,6 +39,22 @@ body {
   color: #e2e8f0;
 }
 
+/* ── Splash screen (herdada do app desktop) ─────────────────────────────── */
+@keyframes splash-fly {
+  0%   { left: -40px; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+@keyframes splash-slide {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+@keyframes splash-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 @layer base {
   :root {
     --background: 222 47% 11%;
