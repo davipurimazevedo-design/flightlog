@@ -1,8 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, BookOpen, Map, Plane, PlusCircle, BarChart2, Settings, Shield, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-
-const APP_VERSION = (typeof window !== 'undefined' && window.flightlog?.version) || '1.15.1'
+import { APP_VERSION } from '../version'
 
 const links = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },

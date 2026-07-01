@@ -1,14 +1,10 @@
 import axios from 'axios'
 import { supabase, AUTH_ENABLED } from './lib/supabase'
 
-// Ordem de resolução do backend:
+// Resolução do backend:
 // 1. VITE_API_URL (web na nuvem → backend no Render)
-// 2. Electron (file://) ou dev → backend local na porta 8000
-// 3. Web servido pelo próprio FastAPI → mesma origem (BASE vazio)
-const isFileProtocol = typeof window !== 'undefined' && window.location.protocol === 'file:'
-const BASE =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV || isFileProtocol ? 'http://127.0.0.1:8000' : '')
+// 2. dev local → 127.0.0.1:8000
+const BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000' : '')
 const api = axios.create({ baseURL: BASE })
 
 // Anexa o token do Supabase em toda requisição (quando a auth está ativa).
