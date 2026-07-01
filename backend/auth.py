@@ -13,12 +13,48 @@ Uso nos endpoints:
         query = query.filter(Model.owner_id == owner.id)
 """
 import jwt
+from jwt import PyJWKClient
 from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 
 import config
 from database import get_db
 from models import Profile
+
+# ── Validação de token ────────────────────────────────────────────────────────
+# O Supabase migrou para chaves assimétricas (ES256): os tokens novos são
+# assinados com uma chave privada e verificados pela chave pública publicada no
+# endpoint JWKS. Tokens legados (HS256) ainda existem por até 1h após a rotação,
+# então aceitamos os dois algoritmos.
+_jwks_client: PyJWKClient | None = None
+
+
+def _get_jwks_client() -> PyJWKClient:
+    """Cliente JWKS (cacheia as chaves públicas internamente)."""
+    global _jwks_client
+    if _jwks_client is None:
+        _jwks_client = PyJWKClient(
+            f"{config.SUPABASE_URL}/auth/v1/.well-known/jwks.json",
+            headers={"apikey": config.SUPABASE_ANON_KEY} if config.SUPABASE_ANON_KEY else None,
+        )
+    return _jwks_client
+
+
+def _decode_token(token: str) -> dict:
+    """Valida o JWT do Supabase (ES256 via JWKS ou HS256 legado) e retorna o payload."""
+    alg = jwt.get_unverified_header(token).get("alg", "")
+    if alg == "HS256":
+        # Token legado (ou os JWTs de teste) — verifica com o segredo compartilhado.
+        return jwt.decode(
+            token, config.SUPABASE_JWT_SECRET,
+            algorithms=["HS256"], audience="authenticated",
+        )
+    # Token atual (assimétrico) — pega a chave pública do JWKS pelo `kid` do token.
+    signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
+    return jwt.decode(
+        token, signing_key.key,
+        algorithms=["ES256", "RS256"], audience="authenticated",
+    )
 
 
 def get_current_user(
@@ -34,12 +70,7 @@ def get_current_user(
 
     token = authorization.split(" ", 1)[1].strip()
     try:
-        payload = jwt.decode(
-            token,
-            config.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
+        payload = _decode_token(token)
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Token inválido ou expirado")
 

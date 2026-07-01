@@ -4,5 +4,5 @@ sqlalchemy==2.0.35
 pydantic==2.10.6
 httpx==0.27.2
 psycopg2-binary==2.9.10  # driver Postgres (nuvem); SQLite local não precisa
-pyjwt==2.10.1            # validação do JWT do Supabase
+pyjwt[crypto]==2.10.1    # validação do JWT do Supabase (crypto = ES256/RS256 via JWKS)
 python-dotenv==1.0.1     # carrega backend/.env em dev

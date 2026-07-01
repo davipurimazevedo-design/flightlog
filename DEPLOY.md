@@ -5,22 +5,20 @@ Cada passo alimenta o próximo com chaves/URLs.
 
 ---
 
-## Pré-requisito: código no GitHub
+## Pré-requisito: código no GitHub ✅ FEITO
 
-Render e Vercel puxam de um repositório Git. Se ainda não está no GitHub:
+Já está publicado em **https://github.com/davipurimazevedo-design/flightlog**
+na branch **`master`** (segredos protegidos pelo `.gitignore`).
 
+> ⚠️ Ao configurar Render e Vercel, selecione a branch **`master`** (não `main`).
+
+Para enviar mudanças futuras, o ciclo é sempre:
 ```bash
 cd "flight-logbook"
-git init
-git add .
-git commit -m "FlightLog web"
-git branch -M main
-git remote add origin https://github.com/davipurimazevedo-design/flightlog.git
-git push -u origin main
+git add -A
+git commit -m "descrição da mudança"
+git push
 ```
-
-> ⚠️ Confirme que existe um `.gitignore` ignorando `node_modules/`, `dist/`,
-> `.env`, `venv/`, `__pycache__/`, `*.db`. Os `.env.example` PODEM ir; os `.env` reais NÃO.
 
 ---
 
@@ -34,9 +32,10 @@ git push -u origin main
    - **Project URL** → `SUPABASE_URL` e `VITE_SUPABASE_URL`
    - **anon public** → `SUPABASE_ANON_KEY` e `VITE_SUPABASE_ANON_KEY`
    - **service_role** → `SUPABASE_SERVICE_ROLE_KEY` (⚠️ secreta, só no backend)
-4. **Settings → API → JWT Settings** — copie o **JWT Secret** → `SUPABASE_JWT_SECRET`.
-   > Se o painel só mostrar "signing keys" assimétricas e nenhum "JWT Secret" (HS256),
-   > **me avise** — troco a validação do `auth.py` para JWKS (é rápido).
+4. **JWT** — `SUPABASE_JWT_SECRET` é **OPCIONAL**. Este projeto usa chaves
+   assimétricas (ES256) e o backend valida pela chave pública (JWKS), que deriva
+   da `SUPABASE_URL`. Você **não precisa** copiar nada aqui. (Se quiser dar suporte
+   a tokens legados HS256, pegue em Settings → JWT Keys → aba "Legacy JWT Secret".)
 5. **Settings → Database → Connection string → URI** — copie e troque `[YOUR-PASSWORD]`
    pela senha do passo 1 → `DATABASE_URL`. (Use a opção **Session pooler** se aparecer.)
 6. **Authentication → Providers → Email**: deixe **Email** habilitado.
@@ -55,18 +54,21 @@ git push -u origin main
 ## 2. Render (backend FastAPI)
 
 Opção A — **Blueprint** (usa o `render.yaml` já incluído):
-1. Render → **New → Blueprint** → conecte o repo → ele lê o `render.yaml`.
-2. Preencha as 6 variáveis (as do Supabase + `CORS_ORIGINS` — deixe a URL da Vercel
-   pra depois, pode pôr um valor temporário).
+1. Render → **New → Blueprint** → conecte o repo (branch `master`) → ele lê o `render.yaml`.
+2. Preencha as variáveis. Obrigatórias: `DATABASE_URL`, `SUPABASE_URL`,
+   `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CORS_ORIGINS` (a URL da Vercel —
+   pode pôr um valor temporário e ajustar depois). `SUPABASE_JWT_SECRET` é opcional
+   (pode deixar em branco — a auth valida por JWKS).
 
 Opção B — **manual** (New → Web Service):
 - Root Directory: `flight-logbook/backend`
+- Branch: `master`
 - Runtime: Python 3
 - Build: `pip install -r requirements.txt`
 - Start: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 - Instance: Free
 - Env vars: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
-  `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `CORS_ORIGINS`
+  `SUPABASE_SERVICE_ROLE_KEY`, `CORS_ORIGINS` (e, opcional, `SUPABASE_JWT_SECRET`)
 
 Depois do deploy, anote a URL: `https://flightlog-api.onrender.com` → vai em `VITE_API_URL`.
 

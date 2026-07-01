@@ -25,11 +25,13 @@ SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 # em auth.users (listar, deletar, resetar senha).
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
-# Segredo HS256 do JWT do Supabase (Settings > API > JWT Settings) — valida os tokens.
+# Segredo HS256 legado do Supabase (aba "Legacy JWT Secret"). OPCIONAL: só valida
+# tokens antigos HS256. Os tokens atuais são ES256, verificados via JWKS (SUPABASE_URL).
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
 
 # Domínios liberados no CORS (separados por vírgula). Vazio = libera tudo (dev/desktop).
 CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
 
-# Auth só é exigida quando há segredo de JWT configurado.
-AUTH_ENABLED = bool(SUPABASE_JWT_SECRET)
+# Auth liga quando há um projeto Supabase configurado. A validação ES256 usa o
+# JWKS derivado da SUPABASE_URL, então não depende mais do JWT secret legado.
+AUTH_ENABLED = bool(SUPABASE_URL)
