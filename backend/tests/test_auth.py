@@ -96,6 +96,17 @@ def test_piloto_nao_usa_aeronave_de_outro(auth_on, client, db):
     assert client.get("/aircraft/", headers=auth_headers("piloto-B")).json() == []
 
 
+def test_dois_pilotos_podem_ter_mesma_matricula(auth_on, client, db):
+    """A matrícula é única POR DONO — dois pilotos com o mesmo prefixo é permitido."""
+    make_profile(db, "piloto-A", email="a@x.z")
+    make_profile(db, "piloto-B", email="b@x.z")
+    body = {"registration": "AT-54", "model": "X", "category": "MEP"}
+    assert client.post("/aircraft/", json=body, headers=auth_headers("piloto-A")).status_code == 201
+    assert client.post("/aircraft/", json=body, headers=auth_headers("piloto-B")).status_code == 201
+    # Mas o MESMO dono não pode duplicar
+    assert client.post("/aircraft/", json=body, headers=auth_headers("piloto-A")).status_code == 400
+
+
 # ── /me e /admin ──────────────────────────────────────────────────────────────
 
 def test_me_retorna_perfil(auth_on, client, db):

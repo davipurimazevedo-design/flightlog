@@ -233,6 +233,36 @@ export default function Logbook() {
     doc.save(fname)
   }
 
+  // ── Exportar CSV ───────────────────────────────────────────────────────────
+  const exportCSV = async () => {
+    const allFlights = await getFlights({ ...buildParams(), skip: 0, limit: 9999, sort_by: sortBy, sort_dir: sortDir })
+    const header = ['Data', 'Origem', 'Destino', 'Matricula', 'Modelo', 'Decolagem (UTC)', 'Pouso (UTC)', 'Tempo (HH:MM)']
+    const lines = allFlights.map(f => {
+      const diffMin = Math.round((new Date(f.arrival_time) - new Date(f.departure_time)) / 60000)
+      return [
+        `${f.date.slice(8,10)}/${f.date.slice(5,7)}/${f.date.slice(0,4)}`,
+        f.origin_icao,
+        f.destination_icao,
+        f.aircraft.registration,
+        f.aircraft.model,
+        `${f.departure_time.slice(11,16)}Z`,
+        `${f.arrival_time.slice(11,16)}Z`,
+        toHHMM(diffMin),
+      ]
+    })
+    // Separador ";" e BOM: é o que o Excel pt-BR espera (vírgula é decimal aqui)
+    const esc = (v) => `"${String(v).replace(/"/g, '""')}"`
+    const csv = '﻿' + [header, ...lines].map(row => row.map(esc).join(';')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const now = new Date()
+    a.href = url
+    a.download = `logbook_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // ── Ações ──────────────────────────────────────────────────────────────────
   const handleDelete = async () => {
     await deleteFlight(confirmId)
@@ -276,13 +306,20 @@ export default function Logbook() {
             {totalFlights} voo{totalFlights !== 1 ? 's' : ''} · Total {toHHMM(totalMinutes)}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={exportCSV}
+            disabled={totalFlights === 0}
+            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <FileDown size={15} /> CSV
+          </button>
           <button
             onClick={exportPDF}
             disabled={totalFlights === 0}
             className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            <FileDown size={15} /> Exportar PDF
+            <FileDown size={15} /> PDF
           </button>
           <button
             onClick={() => navigate('/new-flight')}

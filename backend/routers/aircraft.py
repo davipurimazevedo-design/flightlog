@@ -41,7 +41,9 @@ def update_aircraft(aircraft_id: int, payload: AircraftCreate, db: Session = Dep
     aircraft = q.first()
     if not aircraft:
         raise HTTPException(status_code=404, detail="Aircraft not found")
-    for key, value in payload.model_dump().items():
+    data = payload.model_dump()
+    data['registration'] = data['registration'].upper()
+    for key, value in data.items():
         setattr(aircraft, key, value)
     db.commit()
     db.refresh(aircraft)

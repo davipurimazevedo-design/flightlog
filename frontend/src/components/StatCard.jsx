@@ -13,10 +13,10 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'blue'
           <Icon size={20} />
         </div>
       )}
-      <div>
+      <div className="min-w-0">
         <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-2xl font-bold text-white">{value}</p>
-        {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
+        <p className="text-xl md:text-2xl font-bold text-white break-words">{value}</p>
+        {sub && <p className="text-xs text-slate-500 mt-0.5 break-words">{sub}</p>}
       </div>
     </div>
   )

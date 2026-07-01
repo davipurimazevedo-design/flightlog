@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database import Base
@@ -18,9 +18,11 @@ class Profile(Base):
 
 class Aircraft(Base):
     __tablename__ = "aircraft"
+    # Matrícula única POR DONO (dois pilotos podem ter o mesmo prefixo cadastrado).
+    __table_args__ = (UniqueConstraint("owner_id", "registration", name="uq_aircraft_owner_registration"),)
 
     id = Column(Integer, primary_key=True, index=True)
-    registration = Column(String, unique=True, nullable=False)  # PR-ABC
+    registration = Column(String, nullable=False)               # PR-ABC
     model = Column(String, nullable=False)                      # Cessna 172
     category = Column(String, default="SEP")                   # SEP, MEP, JET, etc.
     # Dono do registro. Nullable durante a migração; preenchido pela auth (Fase 3).

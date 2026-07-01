@@ -23,14 +23,14 @@ function InfoCard({ icon: Icon, label, value, sub, color = 'blue' }) {
     slate:  'text-slate-400  bg-slate-400/10  border-slate-400/20',
   }
   return (
-    <div className="bg-[#0c1f3d] border border-white/10 rounded-xl p-4 flex items-start gap-4">
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center border shrink-0 ${colors[color]}`}>
-        <Icon size={18} />
+    <div className="bg-[#0c1f3d] border border-white/10 rounded-xl p-3 md:p-4 flex items-start gap-3 md:gap-4">
+      <div className={`w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center border shrink-0 ${colors[color]}`}>
+        <Icon size={17} />
       </div>
-      <div>
-        <p className="text-xs text-slate-500 uppercase tracking-wider mb-0.5">{label}</p>
-        <p className="text-white font-semibold text-base font-mono">{value}</p>
-        {sub && <p className="text-slate-400 text-xs mt-0.5">{sub}</p>}
+      <div className="min-w-0">
+        <p className="text-[10px] md:text-xs text-slate-500 uppercase tracking-wider mb-0.5">{label}</p>
+        <p className="text-white font-semibold text-sm md:text-base font-mono break-words">{value}</p>
+        {sub && <p className="text-slate-400 text-xs mt-0.5 break-words">{sub}</p>}
       </div>
     </div>
   )

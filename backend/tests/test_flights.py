@@ -50,6 +50,27 @@ def test_criar_voo_aeronave_inexistente_retorna_404(client_with_seed):
     assert client.post("/flights/", json=payload).status_code == 404
 
 
+def test_criar_voo_pouso_antes_da_decolagem_retorna_400(client_with_seed, sample_flight_payload):
+    """Pouso <= decolagem é inválido (voo de meia-noite já chega ajustado pelo cliente)."""
+    client, _ = client_with_seed
+    payload = {
+        **sample_flight_payload,
+        "departure_time": "2026-06-01T11:15:00Z",
+        "arrival_time":   "2026-06-01T10:30:00Z",
+    }
+    assert client.post("/flights/", json=payload).status_code == 400
+
+
+def test_criar_voo_pouso_igual_decolagem_retorna_400(client_with_seed, sample_flight_payload):
+    client, _ = client_with_seed
+    payload = {
+        **sample_flight_payload,
+        "departure_time": "2026-06-01T10:30:00Z",
+        "arrival_time":   "2026-06-01T10:30:00Z",
+    }
+    assert client.post("/flights/", json=payload).status_code == 400
+
+
 def test_buscar_voo_por_id(client_with_seed, sample_flight_payload):
     client, _ = client_with_seed
     flight_id = client.post("/flights/", json=sample_flight_payload).json()["id"]

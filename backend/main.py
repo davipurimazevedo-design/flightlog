@@ -12,7 +12,25 @@ Base.metadata.create_all(bind=engine)
 
 # ── Migration: adiciona colunas novas sem apagar dados existentes ─────────────
 def _migrate():
-    # Só roda em SQLite (dev/desktop). No Postgres, o schema é gerido pelo Supabase.
+    if engine.dialect.name == "postgresql":
+        # Troca a UNIQUE global de registration pela composta (owner_id, registration):
+        # dois pilotos podem cadastrar o mesmo prefixo. Idempotente.
+        with engine.connect() as conn:
+            conn.execute(sa.text(
+                "ALTER TABLE aircraft DROP CONSTRAINT IF EXISTS aircraft_registration_key"
+            ))
+            conn.execute(sa.text("""
+                DO $$ BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint WHERE conname = 'uq_aircraft_owner_registration'
+                    ) THEN
+                        ALTER TABLE aircraft
+                        ADD CONSTRAINT uq_aircraft_owner_registration UNIQUE (owner_id, registration);
+                    END IF;
+                END $$;
+            """))
+            conn.commit()
+        return
     if engine.dialect.name != "sqlite":
         return
     with engine.connect() as conn:

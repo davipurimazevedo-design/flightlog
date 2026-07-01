@@ -32,6 +32,16 @@ def _duration_seconds_expr(db: Session):
     return func.strftime("%s", Flight.arrival_time) - func.strftime("%s", Flight.departure_time)
 
 
+def _validate_times(payload: FlightCreate):
+    """Pouso deve ser depois da decolagem. Voos que cruzam meia-noite chegam aqui
+    com o arrival_time já no dia seguinte (frontend e bot fazem esse ajuste)."""
+    if payload.arrival_time <= payload.departure_time:
+        raise HTTPException(
+            status_code=400,
+            detail="O horário de pouso deve ser depois do horário de decolagem.",
+        )
+
+
 def _apply_filters(q, search, aircraft_id, date_from, date_to):
     """Aplica filtros comuns de busca à query."""
     if search:
@@ -367,6 +377,7 @@ def _validate_refs(payload: FlightCreate, db: Session, owner: Profile | None):
 
 @router.post("/", response_model=FlightOut, status_code=201)
 def create_flight(payload: FlightCreate, db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
+    _validate_times(payload)
     _validate_refs(payload, db, owner)
     flight = Flight(**payload.model_dump(), owner_id=owner.id if owner else None)
     db.add(flight)
@@ -380,6 +391,7 @@ def update_flight(flight_id: int, payload: FlightCreate, db: Session = Depends(g
     flight = _scope(db.query(Flight), owner).filter(Flight.id == flight_id).first()
     if not flight:
         raise HTTPException(status_code=404, detail="Flight not found")
+    _validate_times(payload)
     _validate_refs(payload, db, owner)
     for key, value in payload.model_dump().items():
         setattr(flight, key, value)

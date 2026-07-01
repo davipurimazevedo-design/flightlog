@@ -24,6 +24,11 @@ input[type="time"]::-webkit-date-and-time-value {
   input[type="time"] {
     -webkit-appearance: none;
     appearance: none;
+    width: 100%;
+    max-width: 100%;
+    min-height: 2.375rem; /* iOS colapsa a altura de inputs de data vazios */
+    display: flex;
+    align-items: center;
   }
 }
 

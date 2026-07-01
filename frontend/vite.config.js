@@ -4,10 +4,17 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  base: './',   // caminhos relativos para funcionar com file:// (Electron)
+  // base absoluta: com caminhos relativos ('./', era do Electron), um F5 em rota
+  // aninhada (ex: /flight/12) buscaria os assets em /flight/assets/... e quebraria.
+  base: '/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.js',
   },
 })
