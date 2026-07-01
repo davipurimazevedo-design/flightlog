@@ -20,7 +20,7 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 md:p-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
         <p className="text-slate-400 text-sm mt-1">Resumo do seu histórico de voos</p>
@@ -46,10 +46,10 @@ export default function Dashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-slate-400 text-xs uppercase">
-                  <th className="px-5 py-3 text-left">Data</th>
-                  <th className="px-5 py-3 text-left">Rota</th>
-                  <th className="px-5 py-3 text-left">Aeronave</th>
-                  <th className="px-5 py-3 text-left">Tempo de Voo</th>
+                  <th className="px-3 md:px-5 py-3 text-left">Data</th>
+                  <th className="px-3 md:px-5 py-3 text-left">Rota</th>
+                  <th className="px-3 md:px-5 py-3 text-left">Aeronave</th>
+                  <th className="px-3 md:px-5 py-3 text-left hidden sm:table-cell">Tempo de Voo</th>
                 </tr>
               </thead>
               <tbody>
@@ -57,16 +57,16 @@ export default function Dashboard() {
                   const block = toHHMM((new Date(f.arrival_time) - new Date(f.departure_time)) / 3600000)
                   return (
                     <tr key={f.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                      <td className="px-5 py-3 text-slate-300">
+                      <td className="px-3 md:px-5 py-3 text-slate-300">
                         {f.date.slice(8,10)}/{f.date.slice(5,7)}/{f.date.slice(0,4)}
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-3 md:px-5 py-3">
                         <span className="font-mono text-blue-300">{f.origin_icao}</span>
                         <span className="text-slate-500 mx-1">→</span>
                         <span className="font-mono text-blue-300">{f.destination_icao}</span>
                       </td>
-                      <td className="px-5 py-3 text-slate-300">{f.aircraft.registration}</td>
-                      <td className="px-5 py-3 text-slate-300 font-mono">{block}</td>
+                      <td className="px-3 md:px-5 py-3 text-slate-300">{f.aircraft.registration}</td>
+                      <td className="px-3 md:px-5 py-3 text-slate-300 font-mono hidden sm:table-cell">{block}</td>
                     </tr>
                   )
                 })}

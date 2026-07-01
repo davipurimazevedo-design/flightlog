@@ -125,7 +125,7 @@ export default function FlightForm() {
   const labelCls = "text-xs text-slate-400 mb-1 block"
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-4 md:p-8 max-w-2xl">
       <h1 className="text-2xl font-bold text-white mb-1">{isEdit ? 'Editar Voo' : 'Novo Voo'}</h1>
       <p className="text-slate-400 text-sm mb-6">Preencha os dados do voo</p>
 
@@ -209,8 +209,8 @@ export default function FlightForm() {
               )
             })()}
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="col-span-2 sm:col-span-1">
               <label className={labelCls}>Data do Voo</label>
               <input
                 type="date"

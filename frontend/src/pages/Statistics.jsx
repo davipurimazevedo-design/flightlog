@@ -93,7 +93,7 @@ export default function Statistics() {
   const inputCls = "bg-[#0a1628] border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500"
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
 
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-end justify-between gap-4">

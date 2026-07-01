@@ -266,10 +266,10 @@ export default function Logbook() {
   const thCls = "px-5 py-3 text-left cursor-pointer select-none hover:text-white transition-colors whitespace-nowrap"
 
   return (
-    <div className="p-8 space-y-5">
+    <div className="p-4 md:p-8 space-y-5">
 
       {/* Cabeçalho */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Logbook</h1>
           <p className="text-slate-400 text-sm mt-1">
@@ -295,9 +295,9 @@ export default function Logbook() {
 
       {/* Barra de filtros */}
       <div className="bg-[#0c1f3d] border border-white/10 rounded-xl p-4">
-        <div className="flex flex-wrap gap-3 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
 
-          <div className="flex-1 min-w-[140px]">
+          <div>
             <label className="text-xs text-slate-400 mb-1 block">Origem / Destino</label>
             <div className="relative">
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -312,7 +312,7 @@ export default function Logbook() {
             </div>
           </div>
 
-          <div className="flex-1 min-w-[130px]">
+          <div>
             <label className="text-xs text-slate-400 mb-1 block">Data início</label>
             <input
               type="date"
@@ -322,7 +322,7 @@ export default function Logbook() {
             />
           </div>
 
-          <div className="flex-1 min-w-[130px]">
+          <div>
             <label className="text-xs text-slate-400 mb-1 block">Data fim</label>
             <input
               type="date"
@@ -332,7 +332,7 @@ export default function Logbook() {
             />
           </div>
 
-          <div className="flex-1 min-w-[160px]">
+          <div>
             <label className="text-xs text-slate-400 mb-1 block">Aeronave</label>
             <select
               value={aircraftId}
@@ -365,7 +365,44 @@ export default function Logbook() {
           {hasFilters ? 'Nenhum voo encontrado com os filtros selecionados.' : 'Nenhum voo registrado ainda.'}
         </div>
       ) : (
-        <div className="bg-[#0c1f3d] border border-white/10 rounded-xl overflow-auto">
+      <>
+        {/* Mobile: lista de cards (sem scroll lateral) */}
+        <div className="md:hidden bg-[#0c1f3d] border border-white/10 rounded-xl divide-y divide-white/5">
+          {flights.map(f => {
+            const diffMin = Math.round((new Date(f.arrival_time) - new Date(f.departure_time)) / 60000)
+            return (
+              <div
+                key={f.id}
+                onClick={() => navigate(`/flight/${f.id}`)}
+                className="p-4 active:bg-white/5 cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="font-mono text-sm">
+                    <span className="text-blue-300">{f.origin_icao}</span>
+                    <span className="text-slate-500 mx-1">→</span>
+                    <span className="text-blue-300">{f.destination_icao}</span>
+                  </div>
+                  <span className="text-white font-semibold font-mono text-sm">{toHHMM(diffMin)}</span>
+                </div>
+                <div className="flex items-center justify-between mt-1.5 text-xs text-slate-400">
+                  <span>
+                    {f.date.slice(8,10)}/{f.date.slice(5,7)}/{f.date.slice(0,4)} · {f.aircraft.registration}
+                  </span>
+                  <span className="font-mono">
+                    {f.departure_time.slice(11,16)}Z–{f.arrival_time.slice(11,16)}Z
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+          <div className="p-3 flex items-center justify-between text-xs text-slate-400 bg-white/5">
+            <span>Total ({totalFlights} voo{totalFlights !== 1 ? 's' : ''})</span>
+            <span className="font-mono text-white font-semibold">{toHHMM(totalMinutes)}</span>
+          </div>
+        </div>
+
+        {/* Desktop: tabela */}
+        <div className="hidden md:block bg-[#0c1f3d] border border-white/10 rounded-xl overflow-auto">
           <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="border-b border-white/10 text-slate-400 text-xs uppercase tracking-wider">
@@ -442,6 +479,7 @@ export default function Logbook() {
             </tfoot>
           </table>
         </div>
+      </>
       )}
 
       {/* Modal de confirmação de exclusão */}
@@ -455,11 +493,11 @@ export default function Logbook() {
 
       {/* Paginação */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-500">
-            Página {page} de {totalPages} · {flights.length} de {totalFlights} voos
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm">
+          <span className="text-slate-500 text-xs sm:text-sm">
+            Página {page} de {totalPages} · {totalFlights} voos
           </span>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 flex-wrap">
             <button onClick={() => setPage(1)} disabled={page === 1}
               className="px-2.5 py-1.5 rounded-lg bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">«</button>
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
