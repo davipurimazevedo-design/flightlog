@@ -6,6 +6,27 @@
   box-sizing: border-box;
 }
 
+/* Inputs de data/hora: no iOS eles ignoram a largura e centralizam o valor,
+   ficando "brutos" e vazando pro lado. */
+input[type="date"],
+input[type="time"] {
+  min-width: 0;
+}
+/* Alinha o valor à esquerda (como um campo normal) em vez de centralizado */
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+/* Só em telas de toque (mobile): força respeitar a largura (evita o overflow do iOS).
+   No desktop mantém o controle nativo com ícone de calendário. */
+@media (hover: none) and (pointer: coarse) {
+  input[type="date"],
+  input[type="time"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;

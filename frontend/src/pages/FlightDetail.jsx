@@ -94,7 +94,7 @@ export default function FlightDetail() {
   const mapZoom = hasMap ? 4 : 3.5
 
   return (
-    <div className="p-8 space-y-6 max-w-4xl">
+    <div className="p-4 md:p-8 space-y-6 max-w-4xl">
 
       {/* Botão voltar */}
       <button
@@ -105,14 +105,14 @@ export default function FlightDetail() {
       </button>
 
       {/* Cabeçalho */}
-      <div className="bg-[#0c1f3d] border border-white/10 rounded-2xl p-6">
+      <div className="bg-[#0c1f3d] border border-white/10 rounded-2xl p-5 md:p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             {/* Rota principal */}
-            <div className="flex items-center gap-3 mb-1">
-              <span className="text-4xl font-bold font-mono text-blue-300">{flight.origin_icao}</span>
-              <span className="text-slate-500 text-2xl">→</span>
-              <span className="text-4xl font-bold font-mono text-blue-300">{flight.destination_icao}</span>
+            <div className="flex items-center gap-2 md:gap-3 mb-1">
+              <span className="text-2xl md:text-4xl font-bold font-mono text-blue-300">{flight.origin_icao}</span>
+              <span className="text-slate-500 text-lg md:text-2xl">→</span>
+              <span className="text-2xl md:text-4xl font-bold font-mono text-blue-300">{flight.destination_icao}</span>
             </div>
             {/* Nomes dos aeroportos */}
             <p className="text-slate-400 text-sm">
