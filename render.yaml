@@ -10,6 +10,10 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
+      # Python 3.14 (default do Render) não tem wheels pré-compilados de pydantic-core
+      # e tenta compilar via Rust, o que falha. 3.12 tem tudo pronto.
+      - key: PYTHON_VERSION
+        value: "3.12.7"
       - key: DATABASE_URL
         sync: false
       - key: SUPABASE_URL
