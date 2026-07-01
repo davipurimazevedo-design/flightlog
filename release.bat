@@ -30,7 +30,12 @@ if not exist "dist\index.html" (
 echo    Frontend compilado com sucesso.
 
 :: ── INSTALADOR ───────────────────────────────────────────────────────────────
-echo [2/2] Gerando instalador...
+echo [2/2] Deletando instaladores antigos...
+cd /d "%ROOT%dist-electron"
+for /f %%f in ('dir /b FlightLog-Setup-*.exe 2^>nul') do del "%%f"
+for /f %%f in ('dir /b FlightLog-Setup-*.exe.blockmap 2^>nul') do del "%%f"
+
+echo [2/2] Gerando novo instalador...
 cd /d "%ROOT%"
 call npm install --silent
 set CSC_IDENTITY_AUTO_DISCOVERY=false
@@ -40,9 +45,9 @@ call npx electron-builder --win
 :: ── RESULTADO ────────────────────────────────────────────────────────────────
 echo.
 echo  ==========================================
-if exist "%ROOT%dist-electron\FlightLog Setup*.exe" (
+if exist "%ROOT%dist-electron\FlightLog-Setup-*.exe" (
     echo   Instalador gerado com sucesso!
-    for %%f in ("%ROOT%dist-electron\FlightLog Setup*.exe") do (
+    for %%f in ("%ROOT%dist-electron\FlightLog-Setup-*.exe") do (
         echo   Arquivo: %%~nxf
     )
 ) else (

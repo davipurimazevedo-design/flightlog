@@ -36,6 +36,8 @@ class FlightCreate(BaseModel):
     departure_time: datetime
     arrival_time: datetime
     remarks: Optional[str] = None
+    source: Optional[str] = "app"
+    needs_review: Optional[bool] = False
 
     @field_validator("origin_icao", "destination_icao")
     @classmethod
@@ -52,6 +54,8 @@ class FlightOut(BaseModel):
     departure_time: datetime
     arrival_time: datetime
     remarks: Optional[str]
+    source: str
+    needs_review: bool
     created_at: datetime
     aircraft: AircraftOut
 

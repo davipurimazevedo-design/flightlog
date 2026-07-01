@@ -3,16 +3,40 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from database import engine, Base
-from routers import flights, aircraft, airports
+from routers import flights, aircraft, airports, account, admin
 from pathlib import Path
+import sqlalchemy as sa
+import config
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Flight Logbook API", version="1.1.0")
+# ── Migration: adiciona colunas novas sem apagar dados existentes ─────────────
+def _migrate():
+    # Só roda em SQLite (dev/desktop). No Postgres, o schema é gerido pelo Supabase.
+    if engine.dialect.name != "sqlite":
+        return
+    with engine.connect() as conn:
+        flight_cols = {row[1] for row in conn.execute(sa.text("PRAGMA table_info(flights)"))}
+        if "source" not in flight_cols:
+            conn.execute(sa.text("ALTER TABLE flights ADD COLUMN source TEXT DEFAULT 'app'"))
+        if "needs_review" not in flight_cols:
+            conn.execute(sa.text("ALTER TABLE flights ADD COLUMN needs_review INTEGER DEFAULT 0"))
+        if "owner_id" not in flight_cols:
+            conn.execute(sa.text("ALTER TABLE flights ADD COLUMN owner_id TEXT"))
 
+        aircraft_cols = {row[1] for row in conn.execute(sa.text("PRAGMA table_info(aircraft)"))}
+        if "owner_id" not in aircraft_cols:
+            conn.execute(sa.text("ALTER TABLE aircraft ADD COLUMN owner_id TEXT"))
+        conn.commit()
+
+_migrate()
+
+app = FastAPI(title="Flight Logbook API", version="1.15.1")
+
+# CORS: na nuvem, travar nos domínios de CORS_ORIGINS; vazio (dev/desktop) = libera tudo.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # app local — Electron carrega via file://, sem risco de CORS externo
+    allow_origins=config.CORS_ORIGINS or ["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -21,6 +45,8 @@ app.add_middleware(
 app.include_router(flights.router)
 app.include_router(aircraft.router)
 app.include_router(airports.router)
+app.include_router(account.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")

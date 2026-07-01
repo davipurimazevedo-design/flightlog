@@ -1,0 +1,24 @@
+# Blueprint do Render para o backend FastAPI.
+# No Render: New > Blueprint > aponte para este repositório.
+# Os valores marcados sync:false você preenche no painel (são secretos).
+services:
+  - type: web
+    name: flightlog-api
+    runtime: python
+    rootDir: flight-logbook/backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

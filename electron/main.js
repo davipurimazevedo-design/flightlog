@@ -1,7 +1,9 @@
 const { app, BrowserWindow, shell, Menu, dialog, globalShortcut, ipcMain } = require('electron')
+const { autoUpdater } = require('electron-updater')
 const { spawn } = require('child_process')
 const path = require('path')
 const http = require('http')
+const https = require('https')
 const fs = require('fs')
 
 const isDev   = !app.isPackaged
@@ -21,6 +23,11 @@ app.on('second-instance', () => {
 let mainWindow = null
 let splashWindow = null
 let backendProcess = null
+let botProcess = null
+let botWasRunning = false      // já chegou a ficar 'running' nesta sessão?
+let botShuttingDownOnPurpose = false  // evita aviso de "offline" ao fechar o app de propósito
+// 'starting' | 'running' | 'stopped' | 'unavailable' (sem python/.env/script)
+let botStatus = 'stopped'
 
 // ── Log ───────────────────────────────────────────────────────────────────────
 const LOG_FILE = isDev
@@ -79,6 +86,151 @@ function startBackend() {
   backendProcess.on('exit', code => log(`[BE] encerrou (código ${code})`))
   backendProcess.on('error', err => log(`[BE] erro: ${err.message}`))
   return true
+}
+
+// ── Telegram Bot ─────────────────────────────────────────────────────────────
+function findPython() {
+  // Tenta localizar o executável Python no sistema
+  const candidates = ['python', 'py', 'python3']
+  const { execSync } = require('child_process')
+  for (const cmd of candidates) {
+    try {
+      execSync(`${cmd} --version`, { stdio: 'ignore', timeout: 3000 })
+      return cmd
+    } catch {}
+  }
+  // Última tentativa: caminho direto onde o pip instalou (Python 3.14 no Windows)
+  const appdata = process.env.APPDATA || ''
+  const direct = path.join('C:\\Python314', 'python.exe')
+  if (fs.existsSync(direct)) return direct
+  return null
+}
+
+// ── Lê TELEGRAM_TOKEN e ALLOWED_USER_IDS direto do .env (sem depender do bot.py) ──
+function readBotEnv(envFile) {
+  const result = { token: null, allowedIds: [] }
+  try {
+    const content = fs.readFileSync(envFile, 'utf-8')
+    for (const line of content.split('\n')) {
+      const m = line.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/)
+      if (!m) continue
+      const [, key, rawVal] = m
+      const val = rawVal.trim().replace(/^["']|["']$/g, '')
+      if (key === 'TELEGRAM_TOKEN') result.token = val
+      if (key === 'ALLOWED_USER_IDS') {
+        result.allowedIds = val.split(',').map(s => s.trim()).filter(Boolean)
+      }
+    }
+  } catch (err) {
+    log(`Não consegui ler .env do bot: ${err.message}`)
+  }
+  return result
+}
+
+// ── Envia mensagem via Telegram API direto (não depende do bot.py estar rodando) ──
+function sendTelegramMessage(token, chatId, text) {
+  return new Promise(resolve => {
+    const data = JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' })
+    const req = https.request({
+      hostname: 'api.telegram.org',
+      path: `/bot${token}/sendMessage`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
+      timeout: 8000,
+    }, res => { res.on('data', () => {}); res.on('end', () => resolve(true)) })
+    req.on('error', err => { log(`Falha ao avisar offline via Telegram: ${err.message}`); resolve(false) })
+    req.on('timeout', () => { req.destroy(); resolve(false) })
+    req.write(data)
+    req.end()
+  })
+}
+
+// ── Avisa os usuários autorizados que o bot caiu inesperadamente ─────────────
+async function notifyBotOffline(botDir) {
+  const envFile = path.join(botDir, '.env')
+  const { token, allowedIds } = readBotEnv(envFile)
+  if (!token || allowedIds.length === 0) return
+  const text = '🔴 *FlightLog Bot ficou offline.*\n\nEle parou de responder inesperadamente. Abra o FlightLog no computador para reiniciá-lo.'
+  for (const chatId of allowedIds) {
+    await sendTelegramMessage(token, chatId, text)
+  }
+  log('Aviso de "bot offline" enviado para os usuários autorizados.')
+}
+
+function startBot() {
+  const botDir = isDev
+    ? path.join(__dirname, '..', 'telegram-bot')
+    : path.join(process.resourcesPath, 'telegram-bot')
+
+  const botScript = path.join(botDir, 'bot.py')
+  const envFile   = path.join(botDir, '.env')
+
+  if (!fs.existsSync(botScript)) {
+    log('Bot: bot.py não encontrado — pulando')
+    botStatus = 'unavailable'
+    return
+  }
+  if (!fs.existsSync(envFile)) {
+    log('Bot: .env não encontrado — pulando (crie o arquivo .env na pasta telegram-bot)')
+    botStatus = 'unavailable'
+    return
+  }
+
+  const pythonCmd = findPython()
+  if (!pythonCmd) {
+    log('Bot: Python não encontrado no sistema — pulando')
+    botStatus = 'unavailable'
+    return
+  }
+
+  log(`Iniciando Telegram Bot com: ${pythonCmd}`)
+  botStatus = 'starting'
+  botProcess = spawn(pythonCmd, [botScript], {
+    cwd: botDir,
+    stdio: 'pipe',
+    windowsHide: true,
+    env: { ...process.env },  // herda o PATH completo do processo pai
+  })
+  const handleBotOutput = d => {
+    const text = d.toString().trim()
+    log(`[BOT] ${text}`)
+    // O módulo `logging` do Python escreve no stderr por padrão — checamos os dois fluxos
+    if (botStatus === 'starting' && /Bot rodando|Application started/i.test(text)) {
+      botStatus = 'running'
+      botWasRunning = true
+    }
+  }
+  botProcess.stdout.on('data', handleBotOutput)
+  botProcess.stderr.on('data', handleBotOutput)
+  botProcess.on('exit', code => {
+    log(`[BOT] encerrou (código ${code})`)
+    const wasRunning = botStatus === 'running' || botWasRunning
+    botStatus = 'stopped'
+    botProcess = null
+    if (wasRunning && !botShuttingDownOnPurpose) {
+      log('Bot caiu inesperadamente — avisando usuários via Telegram...')
+      notifyBotOffline(botDir)
+    }
+    botWasRunning = false
+  })
+  botProcess.on('error', err => {
+    log(`[BOT] erro ao iniciar: ${err.message}`)
+    botStatus = 'unavailable'
+    botProcess = null
+  })
+}
+
+function killBot(intentional = true) {
+  if (!botProcess || botProcess.killed) return
+  if (intentional) botShuttingDownOnPurpose = true
+  try {
+    require('child_process').execSync(`taskkill /F /T /PID ${botProcess.pid}`, { stdio: 'ignore' })
+  } catch {
+    botProcess.kill()
+  }
+  botProcess = null
+  botStatus = 'stopped'
+  log('Bot encerrado')
 }
 
 // ── Aguarda backend responder ─────────────────────────────────────────────────
@@ -216,6 +368,7 @@ function createWindow() {
 
 // ── IPC: Backup e Restore do banco ───────────────────────────────────────────
 ipcMain.handle('get-db-path', () => getDbPath())
+ipcMain.handle('get-bot-status', () => botStatus)
 
 ipcMain.handle('backup-db', async () => {
   const dbPath = getDbPath()
@@ -298,8 +451,10 @@ app.whenReady().then(async () => {
   }
 
   try {
+    await checkForUpdatesOnStartup()
     setSplashStatus('Aguardando conexão...')
     await waitForBackend()
+    startBot()
     setSplashStatus('Carregando interface...')
     createWindow()
   } catch (err) {
@@ -321,12 +476,87 @@ function killBackend() {
   log('Backend encerrado')
 }
 
+// ── Auto-update (verificação no splash, antes de abrir a janela) ─────────────
+async function checkForUpdatesOnStartup() {
+  if (isDev) return
+
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = false
+
+  return new Promise((resolve) => {
+    setSplashStatus('Verificando atualizações...')
+
+    const done = () => resolve()
+
+    // Timeout: se demorar mais de 8s, continua normalmente
+    const timeout = setTimeout(done, 8000)
+
+    autoUpdater.once('update-not-available', () => {
+      log('Sem atualizações disponíveis')
+      clearTimeout(timeout)
+      setSplashStatus('App atualizado!')
+      setTimeout(done, 600)
+    })
+
+    autoUpdater.once('error', (err) => {
+      log(`Erro ao verificar update: ${err.message}`)
+      clearTimeout(timeout)
+      done()
+    })
+
+    autoUpdater.once('update-available', async (info) => {
+      clearTimeout(timeout)
+      log(`Update disponível: v${info.version}`)
+
+      const { response } = await dialog.showMessageBox({
+        type: 'info',
+        title: 'Atualização disponível',
+        message: `Nova versão disponível: v${info.version}`,
+        detail: 'Deseja atualizar agora?\nO app será reiniciado após a instalação.',
+        buttons: ['Atualizar agora', 'Agora não'],
+        defaultId: 0,
+        cancelId: 1,
+      })
+
+      if (response === 1) {
+        // Usuário escolheu "Agora não" — abre normalmente
+        done()
+        return
+      }
+
+      // Usuário escolheu "Atualizar agora" — baixa e instala
+      autoUpdater.on('download-progress', (progress) => {
+        const pct = Math.round(progress.percent)
+        setSplashStatus(`Baixando atualização... ${pct}%`)
+      })
+
+      autoUpdater.once('update-downloaded', () => {
+        setSplashStatus('Instalando atualização...')
+        setTimeout(() => autoUpdater.quitAndInstall(false, true), 800)
+      })
+
+      autoUpdater.downloadUpdate().catch(err => {
+        log(`Erro no download: ${err.message}`)
+        done()
+      })
+    })
+
+    autoUpdater.checkForUpdates().catch(err => {
+      log(`Erro ao verificar update: ${err.message}`)
+      clearTimeout(timeout)
+      done()
+    })
+  })
+}
+
 app.on('window-all-closed', () => {
   globalShortcut.unregisterAll()
   killBackend()
+  killBot()
   if (process.platform !== 'darwin') app.quit()
 })
 
 app.on('before-quit', () => {
   killBackend()
+  killBot()
 })

@@ -37,10 +37,10 @@ for %%f in ("%ROOT%backend\*.py" "%ROOT%backend\routers\*.py" "%ROOT%backend\req
 :decide
 echo.
 if "%NEED_BACKEND%"=="1" (
-    echo [>] Mudancas no backend detectadas — Build COMPLETO
+    echo [*] Mudancas no backend detectadas — Build COMPLETO
     echo     ^(empacota Python + compila React + gera instalador^)
 ) else (
-    echo [>] Sem mudancas no backend — Build RAPIDO
+    echo [*] Sem mudancas no backend — Build RAPIDO
     echo     ^(compila React + gera instalador^)
 )
 echo.
@@ -94,7 +94,12 @@ if not exist "dist\index.html" (
 echo    Frontend compilado com sucesso.
 
 :: ── INSTALADOR ───────────────────────────────────────────────────────────────
-echo [?/?] Gerando instalador...
+echo [?/?] Deletando instaladores antigos...
+cd /d "%ROOT%dist-electron"
+for /f %%f in ('dir /b FlightLog-Setup-*.exe 2^>nul') do del "%%f"
+for /f %%f in ('dir /b FlightLog-Setup-*.exe.blockmap 2^>nul') do del "%%f"
+
+echo [?/?] Gerando novo instalador...
 cd /d "%ROOT%"
 call npm install --silent
 set CSC_IDENTITY_AUTO_DISCOVERY=false
@@ -104,9 +109,9 @@ call npx electron-builder --win
 :: ── RESULTADO ────────────────────────────────────────────────────────────────
 echo.
 echo  ==========================================
-if exist "%ROOT%dist-electron\FlightLog Setup*.exe" (
+if exist "%ROOT%dist-electron\FlightLog-Setup-*.exe" (
     echo   Instalador gerado com sucesso!
-    for %%f in ("%ROOT%dist-electron\FlightLog Setup*.exe") do (
+    for %%f in ("%ROOT%dist-electron\FlightLog-Setup-*.exe") do (
         echo   Arquivo: %%~nxf
     )
 ) else (

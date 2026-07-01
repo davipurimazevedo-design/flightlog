@@ -1,6 +1,6 @@
 {
   "name": "flightlog",
-  "version": "1.9.3",
+  "version": "1.15.1",
   "description": "Logbook de aviação militar",
   "main": "electron/main.js",
   "author": "FlightLog",
@@ -33,11 +33,17 @@
       {
         "from": "backend/dist/flightlog-backend.exe",
         "to": "flightlog-backend.exe"
+      },
+      {
+        "from": "telegram-bot",
+        "to": "telegram-bot",
+        "filter": ["**/*", "!__pycache__/**", "!venv/**", "!.venv/**"]
       }
     ],
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}",
       "signAndEditExecutable": false,
       "verifyUpdateCodeSignature": false
     },
@@ -51,6 +57,14 @@
       "uninstallerIcon": "assets/icon.ico",
       "installerHeaderIcon": "assets/icon.ico",
       "deleteAppDataOnUninstall": false
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "davipurimazevedo-design",
+      "repo": "flightlog"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

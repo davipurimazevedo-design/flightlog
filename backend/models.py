@@ -1,7 +1,19 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database import Base
+
+
+class Profile(Base):
+    """Dados de app do usuário — espelha auth.users do Supabase (id = UUID do Supabase)."""
+    __tablename__ = "profiles"
+
+    id = Column(String, primary_key=True)              # = auth.users.id (UUID do Supabase)
+    email = Column(String, nullable=False)
+    full_name = Column(String, nullable=True)
+    role = Column(String, default="pilot")             # 'pilot' | 'admin'
+    status = Column(String, default="pending")         # 'pending' | 'active' | 'disabled'
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Aircraft(Base):
@@ -11,6 +23,8 @@ class Aircraft(Base):
     registration = Column(String, unique=True, nullable=False)  # PR-ABC
     model = Column(String, nullable=False)                      # Cessna 172
     category = Column(String, default="SEP")                   # SEP, MEP, JET, etc.
+    # Dono do registro. Nullable durante a migração; preenchido pela auth (Fase 3).
+    owner_id = Column(String, ForeignKey("profiles.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     flights = relationship("Flight", back_populates="aircraft")
@@ -48,6 +62,10 @@ class Flight(Base):
     day_night = Column(String, default="DAY")           # DAY, NIGHT, MIXED
 
     remarks = Column(Text, nullable=True)
+    source = Column(String, default="app")          # "app" | "telegram"
+    needs_review = Column(Boolean, default=False)   # True quando registrado via bot
+    # Dono do voo. Nullable durante a migração; preenchido pela auth (Fase 3).
+    owner_id = Column(String, ForeignKey("profiles.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     aircraft = relationship("Aircraft", back_populates="flights")

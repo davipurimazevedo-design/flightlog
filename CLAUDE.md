@@ -6,7 +6,24 @@
   - Bug fix / ajuste pequeno → PATCH (ex: v1.1.0 → v1.1.1)
   - Nova funcionalidade → MINOR (ex: v1.1.0 → v1.2.0)
   - Redesign / mudança estrutural grande → MAJOR (ex: v1.0.0 → v2.0.0)
-- Versão atual: **v1.9.3**
+- Versão atual: **v1.15.1**
+
+## Preferências de trabalho (Davi)
+- **Mudanças visuais/alinhamento**: SEMPRE pedir referência visual (print, mockup,
+  ou descrição precisa tipo "alinhe o final do X com a letra Y de Z") ANTES de
+  implementar. Evita ciclos de tentativa-e-erro em CSS/posicionamento — já
+  aconteceu de precisar de 3 iterações até acertar o alinhamento da versão no Sidebar.
+- **Antes de agir em algo subjetivo/ambíguo**: perguntar primeiro. Preferência
+  explícita do usuário ("me pergunte antes de tomar ação").
+- **Limpeza periódica**: ao final de blocos grandes de trabalho, verificar e remover
+  `__pycache__`, venvs quebradas, arquivos temporários/estranhos (ex: stray files
+  criados por bugs em scripts .bat).
+- **Scripts de teste manuais**: o usuário gosta de `.bat` simples para simular
+  cenários (ex: `test-kill-backend.bat`, `test-kill-bot.bat`) — preferir essa
+  abordagem prática a setups de teste pesados quando o objetivo é validação manual rápida.
+- **Explicações**: quando pedir para explicar algo "como se fosse pra alguém que
+  nunca viu", usar analogias, diagramas ASCII e fluxos passo-a-passo em vez de
+  jargão técnico direto.
 
 ## Stack
 - **Backend**: Python / FastAPI / SQLAlchemy / SQLite (`backend/logbook.db`)

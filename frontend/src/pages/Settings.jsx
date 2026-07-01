@@ -1,6 +1,34 @@
 import { useEffect, useState } from 'react'
-import { Database, Download, Upload, Info, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Database, Download, Upload, Info, AlertTriangle, CheckCircle2, Activity } from 'lucide-react'
 import { useToast } from '../components/Toast'
+import { useBackendStatus } from '../hooks/useBackendStatus'
+import { useBotStatus } from '../hooks/useBotStatus'
+
+const BACKEND_STATUS_CONFIG = {
+  online:   { color: 'bg-green-500',  label: 'Online' },
+  offline:  { color: 'bg-red-500',    label: 'Offline' },
+  checking: { color: 'bg-yellow-400', label: 'Verificando...' },
+}
+
+const BOT_STATUS_CONFIG = {
+  running:     { color: 'bg-green-500',  label: 'Online' },
+  starting:    { color: 'bg-yellow-400', label: 'Iniciando...' },
+  stopped:     { color: 'bg-red-500',    label: 'Offline' },
+  unavailable: { color: 'bg-slate-500',  label: 'Indisponível (verifique Python/.env)' },
+  unknown:     { color: 'bg-slate-500',  label: 'Desconhecido' },
+}
+
+function StatusRow({ label, color, value, pulse }) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+      <span className="text-sm text-slate-500">{label}</span>
+      <span className="flex items-center gap-2 text-sm text-slate-300 font-mono">
+        <span className={`w-2 h-2 rounded-full shrink-0 ${color} ${pulse ? 'animate-pulse' : ''}`} />
+        {value}
+      </span>
+    </div>
+  )
+}
 
 const isElectron = typeof window !== 'undefined' && !!window.flightlog?.isElectron
 
@@ -39,6 +67,8 @@ function ActionButton({ onClick, disabled, variant = 'primary', icon: Icon, chil
 // ═══════════════════════════════════════════════════════════════════════════
 export default function Settings() {
   const { addToast } = useToast()
+  const backendStatus = useBackendStatus()
+  const botStatus = useBotStatus()
   const [dbPath, setDbPath] = useState('')
   const [loadingBackup, setLoadingBackup] = useState(false)
   const [loadingRestore, setLoadingRestore] = useState(false)
@@ -96,6 +126,28 @@ export default function Settings() {
         <h1 className="text-2xl font-bold text-white">Configurações</h1>
         <p className="text-slate-400 text-sm mt-1">Gerenciamento do app e dos seus dados</p>
       </div>
+
+      {/* ── Status do Sistema ──────────────────────────────────────────── */}
+      <SectionCard icon={Activity} title="Status do Sistema">
+        <div className="space-y-1">
+          <StatusRow
+            label="Backend (API local)"
+            color={BACKEND_STATUS_CONFIG[backendStatus].color}
+            value={BACKEND_STATUS_CONFIG[backendStatus].label}
+            pulse={backendStatus === 'checking'}
+          />
+          <StatusRow
+            label="Telegram Bot"
+            color={(BOT_STATUS_CONFIG[botStatus] || BOT_STATUS_CONFIG.unknown).color}
+            value={(BOT_STATUS_CONFIG[botStatus] || BOT_STATUS_CONFIG.unknown).label}
+            pulse={botStatus === 'starting'}
+          />
+        </div>
+        <p className="text-xs text-slate-600 mt-4 leading-relaxed">
+          O Backend é a API local que armazena seus dados. O Bot do Telegram permite registrar
+          voos por mensagem de texto ou áudio — ambos iniciam automaticamente junto com o app.
+        </p>
+      </SectionCard>
 
       {/* ── Banco de Dados ─────────────────────────────────────────────── */}
       <SectionCard icon={Database} title="Banco de Dados">

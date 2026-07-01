@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database import get_db
-from models import Flight, Airport, Aircraft
+from models import Flight, Airport, Aircraft, Profile
 from schemas import FlightCreate, FlightOut, Stats
+from auth import require_active
 from typing import Optional
 from datetime import datetime
 from collections import defaultdict
@@ -11,6 +12,24 @@ import math
 
 router = APIRouter(prefix="/flights", tags=["flights"])
 
+
+def _scope(q, owner: Profile | None):
+    """Filtra a query por dono quando a auth está ativa; sem escopo em dev/desktop."""
+    if owner:
+        q = q.filter(Flight.owner_id == owner.id)
+    return q
+
+
+def _duration_seconds_expr(db: Session):
+    """
+    Expressão SQL portável para (arrival_time - departure_time) em segundos.
+    SQLite não tem EXTRACT(EPOCH ...) e Postgres não tem strftime('%s', ...),
+    então escolhemos a sintaxe conforme o dialeto da conexão atual.
+    """
+    if db.bind.dialect.name == "postgresql":
+        return func.extract("epoch", Flight.arrival_time - Flight.departure_time)
+    # SQLite (e compatíveis)
+    return func.strftime("%s", Flight.arrival_time) - func.strftime("%s", Flight.departure_time)
 
 
 def _apply_filters(q, search, aircraft_id, date_from, date_to):
@@ -41,8 +60,9 @@ def list_flights(
     sort_by: Optional[str] = "date",
     sort_dir: Optional[str] = "desc",
     db: Session = Depends(get_db),
+    owner: Profile | None = Depends(require_active),
 ):
-    q = db.query(Flight)
+    q = _scope(db.query(Flight), owner)
     q = _apply_filters(q, search, aircraft_id, date_from, date_to)
 
     # Ordenação
@@ -70,9 +90,10 @@ def count_flights(
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
     db: Session = Depends(get_db),
+    owner: Profile | None = Depends(require_active),
 ):
     """Retorna total de voos e soma de minutos — usa COUNT/SUM no banco, sem carregar registros."""
-    base_q = db.query(Flight)
+    base_q = _scope(db.query(Flight), owner)
     base_q = _apply_filters(base_q, search, aircraft_id, date_from, date_to)
 
     # Total de voos via COUNT direto no banco
@@ -80,7 +101,7 @@ def count_flights(
 
     # Soma dos segundos de voo via SUM no banco, convertido para minutos
     seconds_sum = base_q.with_entities(
-        func.sum(func.strftime('%s', Flight.arrival_time) - func.strftime('%s', Flight.departure_time))
+        func.sum(_duration_seconds_expr(db))
     ).scalar() or 0
 
     total_minutes = round(seconds_sum / 60)
@@ -88,26 +109,24 @@ def count_flights(
 
 
 @router.get("/stats", response_model=Stats)
-def get_stats(db: Session = Depends(get_db)):
+def get_stats(db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
     """Estatísticas gerais — usa SQL aggregates, sem carregar voos na memória."""
-    total_flights = db.query(func.count(Flight.id)).scalar() or 0
+    total_flights = _scope(db.query(func.count(Flight.id)), owner).scalar() or 0
 
     if total_flights == 0:
         return Stats(total_flights=0, total_block_hours=0, unique_airports=0, unique_aircraft=0)
 
     # Horas totais via SUM no banco
-    seconds = db.query(
-        func.sum(func.strftime('%s', Flight.arrival_time) - func.strftime('%s', Flight.departure_time))
-    ).scalar() or 0
+    seconds = _scope(db.query(func.sum(_duration_seconds_expr(db))), owner).scalar() or 0
     total_block_hours = round(seconds / 3600, 2)
 
     # Aeroportos únicos (origens + destinos)
-    origins = {r[0] for r in db.query(func.distinct(Flight.origin_icao)).all()}
-    dests   = {r[0] for r in db.query(func.distinct(Flight.destination_icao)).all()}
+    origins = {r[0] for r in _scope(db.query(func.distinct(Flight.origin_icao)), owner).all()}
+    dests   = {r[0] for r in _scope(db.query(func.distinct(Flight.destination_icao)), owner).all()}
     unique_airports = len(origins | dests)
 
     # Aeronaves únicas
-    unique_aircraft = db.query(func.count(func.distinct(Flight.aircraft_id))).scalar() or 0
+    unique_aircraft = _scope(db.query(func.count(func.distinct(Flight.aircraft_id))), owner).scalar() or 0
 
     return Stats(
         total_flights=total_flights,
@@ -122,9 +141,10 @@ def get_detailed_stats(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     db: Session = Depends(get_db),
+    owner: Profile | None = Depends(require_active),
 ):
     """Estatísticas detalhadas para a página de análise, com filtro de período."""
-    q = db.query(Flight)
+    q = _scope(db.query(Flight), owner)
     if date_from:
         q = q.filter(Flight.date >= datetime.fromisoformat(date_from))
     if date_to:
@@ -233,9 +253,9 @@ def get_detailed_stats(
 
 
 @router.get("/map-routes")
-def get_map_routes(db: Session = Depends(get_db)):
+def get_map_routes(db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
     """Return all unique routes with airport coordinates, aircraft and hours for map rendering."""
-    flights = db.query(Flight).all()
+    flights = _scope(db.query(Flight), owner).all()
     if not flights:
         return []
 
@@ -305,24 +325,50 @@ def get_map_routes(db: Session = Depends(get_db)):
     return result
 
 
+@router.get("/pending-review", response_model=list[FlightOut])
+def get_pending_review(db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
+    """Voos registrados via bot que aguardam revisão do usuário."""
+    q = _scope(db.query(Flight), owner).filter(Flight.needs_review == True)
+    return q.order_by(Flight.created_at.desc()).all()
+
+
+@router.patch("/{flight_id}/mark-reviewed", response_model=FlightOut)
+def mark_reviewed(flight_id: int, db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
+    """Marca um voo como revisado (needs_review=False)."""
+    flight = _scope(db.query(Flight), owner).filter(Flight.id == flight_id).first()
+    if not flight:
+        raise HTTPException(status_code=404, detail="Flight not found")
+    flight.needs_review = False
+    db.commit()
+    db.refresh(flight)
+    return flight
+
+
 @router.get("/{flight_id}", response_model=FlightOut)
-def get_flight(flight_id: int, db: Session = Depends(get_db)):
-    flight = db.query(Flight).filter(Flight.id == flight_id).first()
+def get_flight(flight_id: int, db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
+    flight = _scope(db.query(Flight), owner).filter(Flight.id == flight_id).first()
     if not flight:
         raise HTTPException(status_code=404, detail="Flight not found")
     return flight
 
 
-@router.post("/", response_model=FlightOut, status_code=201)
-def create_flight(payload: FlightCreate, db: Session = Depends(get_db)):
+def _validate_refs(payload: FlightCreate, db: Session, owner: Profile | None):
+    """Aeroportos são compartilhados; aeronave precisa pertencer ao dono (quando há auth)."""
     if not db.query(Airport).filter(Airport.icao == payload.origin_icao).first():
         raise HTTPException(status_code=404, detail=f"Airport {payload.origin_icao} not found")
     if not db.query(Airport).filter(Airport.icao == payload.destination_icao).first():
         raise HTTPException(status_code=404, detail=f"Airport {payload.destination_icao} not found")
-    if not db.query(Aircraft).filter(Aircraft.id == payload.aircraft_id).first():
+    ac_q = db.query(Aircraft).filter(Aircraft.id == payload.aircraft_id)
+    if owner:
+        ac_q = ac_q.filter(Aircraft.owner_id == owner.id)
+    if not ac_q.first():
         raise HTTPException(status_code=404, detail="Aircraft not found")
 
-    flight = Flight(**payload.model_dump())
+
+@router.post("/", response_model=FlightOut, status_code=201)
+def create_flight(payload: FlightCreate, db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
+    _validate_refs(payload, db, owner)
+    flight = Flight(**payload.model_dump(), owner_id=owner.id if owner else None)
     db.add(flight)
     db.commit()
     db.refresh(flight)
@@ -330,16 +376,11 @@ def create_flight(payload: FlightCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{flight_id}", response_model=FlightOut)
-def update_flight(flight_id: int, payload: FlightCreate, db: Session = Depends(get_db)):
-    flight = db.query(Flight).filter(Flight.id == flight_id).first()
+def update_flight(flight_id: int, payload: FlightCreate, db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
+    flight = _scope(db.query(Flight), owner).filter(Flight.id == flight_id).first()
     if not flight:
         raise HTTPException(status_code=404, detail="Flight not found")
-    if not db.query(Airport).filter(Airport.icao == payload.origin_icao).first():
-        raise HTTPException(status_code=404, detail=f"Airport {payload.origin_icao} not found")
-    if not db.query(Airport).filter(Airport.icao == payload.destination_icao).first():
-        raise HTTPException(status_code=404, detail=f"Airport {payload.destination_icao} not found")
-    if not db.query(Aircraft).filter(Aircraft.id == payload.aircraft_id).first():
-        raise HTTPException(status_code=404, detail="Aircraft not found")
+    _validate_refs(payload, db, owner)
     for key, value in payload.model_dump().items():
         setattr(flight, key, value)
     db.commit()
@@ -348,8 +389,8 @@ def update_flight(flight_id: int, payload: FlightCreate, db: Session = Depends(g
 
 
 @router.delete("/{flight_id}", status_code=204)
-def delete_flight(flight_id: int, db: Session = Depends(get_db)):
-    flight = db.query(Flight).filter(Flight.id == flight_id).first()
+def delete_flight(flight_id: int, db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
+    flight = _scope(db.query(Flight), owner).filter(Flight.id == flight_id).first()
     if not flight:
         raise HTTPException(status_code=404, detail="Flight not found")
     db.delete(flight)

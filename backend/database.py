@@ -16,10 +16,20 @@ def _get_db_path() -> Path:
         # Desenvolvimento normal
         return Path(__file__).parent / 'logbook.db'
 
-DB_PATH = _get_db_path()
-DATABASE_URL = f"sqlite:///{DB_PATH}"
+# DATABASE_URL na env → Postgres (nuvem). Sem env → SQLite local (dev/desktop).
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+if DATABASE_URL:
+    # Supabase/Render/Heroku às vezes entregam "postgres://"; SQLAlchemy 2.x exige "postgresql://"
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    # pool_pre_ping evita erros de conexão "morta" (comum em Postgres gerenciado)
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+else:
+    DB_PATH = _get_db_path()
+    DATABASE_URL = f"sqlite:///{DB_PATH}"
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
