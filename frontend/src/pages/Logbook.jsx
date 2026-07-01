@@ -167,7 +167,8 @@ export default function Logbook() {
       const diffMin = Math.round((new Date(f.arrival_time) - new Date(f.departure_time)) / 60000)
       return [
         `${f.date.slice(8,10)}/${f.date.slice(5,7)}/${f.date.slice(0,4)}`,
-        `${f.origin_icao} → ${f.destination_icao}`,
+        // "»" no lugar de "→": a Helvetica embutida do jsPDF é Latin-1 e não tem a seta
+        `${f.origin_icao} » ${f.destination_icao}`,
         f.aircraft.registration,
         f.aircraft.model,
         `${f.departure_time.slice(11,16)}Z`,
