@@ -35,7 +35,7 @@ export default function Signup() {
         <div className="flex flex-col items-center text-center gap-3 py-2">
           <CheckCircle2 className="text-green-400" size={40} />
           <p className="text-sm text-slate-300">
-            Confirme seu email e aguarde a <strong className="text-white">aprovação do administrador</strong>.
+            Sua conta foi criada! Aguarde a <strong className="text-white">aprovação do administrador</strong>.
             Você poderá entrar assim que sua conta for liberada.
           </p>
         </div>
