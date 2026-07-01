@@ -26,7 +26,7 @@ export default function Sidebar() {
   ]
 
   return (
-    <aside className="w-56 h-screen sticky top-0 bg-[#0c1f3d] border-r border-white/10 flex flex-col py-6 px-3 shrink-0 overflow-y-auto">
+    <aside className="hidden md:flex w-56 h-screen sticky top-0 bg-[#0c1f3d] border-r border-white/10 flex-col py-6 px-3 shrink-0 overflow-y-auto">
       <div className="px-3 mb-8 flex items-center gap-2">
         <Plane className="text-blue-400" size={22} />
         <div className="flex flex-col items-end">

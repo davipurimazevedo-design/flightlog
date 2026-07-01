@@ -14,6 +14,7 @@ import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import ErrorBoundary from './components/ErrorBoundary'
+import BottomNav from './components/BottomNav'
 import PendingReviewModal from './components/PendingReviewModal'
 import { Protected, RequireAdmin } from './components/ProtectedRoute'
 import { usePendingFlights } from './hooks/usePendingFlights'
@@ -31,7 +32,7 @@ function AppShell() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -47,6 +48,8 @@ function AppShell() {
           </Routes>
         </ErrorBoundary>
       </main>
+
+      <BottomNav />
 
       <PendingReviewModal
         flights={pending}
