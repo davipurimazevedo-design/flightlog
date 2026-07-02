@@ -6,13 +6,9 @@ import ConfirmModal from '../components/ConfirmModal'
 import {
   Map, MapControls, MapRoute, MapMarker, MarkerContent, MarkerTooltip, MarkerLabel,
 } from '@/components/ui/map'
-import { Pencil, Trash2, ArrowLeft, Clock, Plane, MapPin, FileText, Calendar } from 'lucide-react'
+import { Pencil, Trash2, ArrowLeft, ArrowLeftRight, Clock, Plane, MapPin, FileText, Calendar } from 'lucide-react'
 
-const toHHMM = (totalMinutes) => {
-  const hh = String(Math.floor(totalMinutes / 60)).padStart(2, '0')
-  const mm = String(totalMinutes % 60).padStart(2, '0')
-  return `${hh}:${mm}`
-}
+import { minutesToHHMM as toHHMM } from '../lib/utils'
 
 function InfoCard({ icon: Icon, label, value, sub, color = 'blue' }) {
   const colors = {
@@ -73,6 +69,24 @@ export default function FlightDetail() {
     navigate('/logbook')
   }
 
+  // "Registrar volta": abre o form com a rota INVERTIDA, mesma aeronave e data,
+  // decolagem = pouso da ida (turnaround). O piloto só ajusta os horários.
+  const handleReturnLeg = () => {
+    const arrHHMM = flight.arrival_time.slice(11, 16)
+    navigate('/new-flight', {
+      state: {
+        prefill: {
+          date: flight.date.slice(0, 10),
+          origin_icao: flight.destination_icao,
+          destination_icao: flight.origin_icao,
+          aircraft_id: String(flight.aircraft_id),
+          departure_time: arrHHMM,
+          arrival_time: arrHHMM,
+        },
+      },
+    })
+  }
+
   if (loading) {
     return <div className="p-8 text-slate-500 text-center py-20">Carregando...</div>
   }
@@ -124,7 +138,14 @@ export default function FlightDetail() {
           </div>
 
           {/* Ações */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleReturnLeg}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-400 text-sm font-medium transition-colors"
+              title="Criar o voo de volta com a rota invertida"
+            >
+              <ArrowLeftRight size={14} /> Registrar volta
+            </button>
             <button
               onClick={() => navigate(`/edit-flight/${id}`)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"

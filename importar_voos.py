@@ -115,7 +115,7 @@ def clean_registration(val) -> str:
     return s.upper()
 
 
-def ensure_aircraft(conn, registration: str, model: str) -> int:
+def ensure_aircraft(conn, registration: str, model: str, owner_id: str | None = None) -> int:
     """Retorna o ID da aeronave, criando se não existir."""
     reg = registration.upper().strip()
     cur = conn.execute("SELECT id FROM aircraft WHERE registration = ?", (reg,))
@@ -123,8 +123,8 @@ def ensure_aircraft(conn, registration: str, model: str) -> int:
     if row:
         return row[0]
     conn.execute(
-        "INSERT INTO aircraft (registration, model, category, created_at) VALUES (?, ?, 'SEP', ?)",
-        (reg, model.strip(), datetime.now(timezone.utc).isoformat()),
+        "INSERT INTO aircraft (registration, model, category, owner_id, created_at) VALUES (?, ?, 'SEP', ?, ?)",
+        (reg, model.strip(), owner_id, datetime.now(timezone.utc).isoformat()),
     )
     conn.commit()
     cur = conn.execute("SELECT id FROM aircraft WHERE registration = ?", (reg,))
@@ -200,9 +200,21 @@ def merge_rota_flights(conn) -> int:
 
 # ───────────────────────────────────────────────────────────────
 def main():
+    # --owner-id <uuid>: atribui os voos/aeronaves a um usuário (multi-usuário).
+    # Sem ele, os registros ficam sem dono — ok só em uso local single-user.
+    owner_id = None
+    if "--owner-id" in sys.argv:
+        i = sys.argv.index("--owner-id")
+        try:
+            owner_id = sys.argv[i + 1]
+        except IndexError:
+            print("ERRO: --owner-id requer um valor (UUID do usuário)")
+            sys.exit(1)
+        del sys.argv[i:i + 2]
+
     if len(sys.argv) < 2:
         print(__doc__)
-        print("\nUso:  python importar_voos.py <caminho_da_planilha>")
+        print("\nUso:  python importar_voos.py <caminho_da_planilha> [--owner-id <uuid>]")
         sys.exit(0)
 
     filepath = Path(sys.argv[1])
@@ -276,7 +288,7 @@ def main():
             dat_iso = f"{date_str}T00:00:00+00:00"
 
             # Aeronave
-            aircraft_id = ensure_aircraft(conn, matricula, modelo)
+            aircraft_id = ensure_aircraft(conn, matricula, modelo, owner_id)
 
             # Aeroportos (cria placeholder se não existir)
             for icao in (origin_icao, dest_icao):
@@ -289,10 +301,10 @@ def main():
                 """INSERT INTO flights
                    (date, origin_icao, destination_icao, aircraft_id,
                     departure_time, arrival_time, airborne_time,
-                    role, flight_rules, day_night, remarks, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, NULL, 'PIC', 'VFR', 'DAY', NULL, ?)""",
+                    role, flight_rules, day_night, remarks, owner_id, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, NULL, 'PIC', 'VFR', 'DAY', NULL, ?, ?)""",
                 (dat_iso, origin_icao, dest_icao, aircraft_id,
-                 dep_iso, arr_iso,
+                 dep_iso, arr_iso, owner_id,
                  datetime.now(timezone.utc).isoformat()),
             )
             conn.commit()

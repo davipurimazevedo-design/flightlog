@@ -23,6 +23,7 @@ function IconBtn({ onClick, title, color = 'text-slate-400', children }) {
   )
 }
 
+// last_sign_in_at é um instante (com fuso) — new Date converte pro horário local.
 function fmtDate(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -30,7 +31,8 @@ function fmtDate(iso) {
 }
 
 export default function Admin() {
-  const { addToast } = useToast()
+  // useToast retorna a própria função add — NÃO desestruturar.
+  const addToast = useToast()
   const { profile } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -65,8 +67,35 @@ export default function Admin() {
     await run(() => adminDeleteUser(u.id), `${u.email} removido.`)
   }
 
+  // Ações por usuário — compartilhadas entre a linha da tabela (desktop) e o card (mobile)
+  const UserActions = ({ u }) => {
+    const isSelf = u.id === profile?.id
+    return (
+      <div className="flex items-center justify-end gap-1">
+        {u.status === 'pending' && (
+          <IconBtn onClick={() => run(() => adminApprove(u.id), `${u.email} aprovado.`)}
+            title="Aprovar" color="text-green-400"><CheckCircle2 size={16} /></IconBtn>
+        )}
+        {u.status === 'active' && !isSelf && (
+          <IconBtn onClick={() => run(() => adminDisable(u.id), `${u.email} desativado.`)}
+            title="Desativar" color="text-amber-400"><Ban size={16} /></IconBtn>
+        )}
+        {u.role !== 'admin' && (
+          <IconBtn onClick={() => run(() => adminPromote(u.id), `${u.email} promovido a admin.`)}
+            title="Promover a admin" color="text-blue-400"><ArrowUpCircle size={16} /></IconBtn>
+        )}
+        <IconBtn onClick={() => run(() => adminResetPassword(u.id), `Email de reset enviado para ${u.email}.`)}
+          title="Resetar senha"><KeyRound size={16} /></IconBtn>
+        {!isSelf && (
+          <IconBtn onClick={() => setConfirmDelete(u)}
+            title="Remover" color="text-red-400"><Trash2 size={16} /></IconBtn>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="p-8 space-y-6 max-w-4xl">
+    <div className="p-4 md:p-8 space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -77,7 +106,40 @@ export default function Admin() {
         <IconBtn onClick={load} title="Recarregar" color="text-slate-300"><RefreshCw size={18} /></IconBtn>
       </div>
 
-      <div className="bg-[#0c1f3d] border border-white/10 rounded-xl overflow-hidden">
+      {/* Mobile: cards */}
+      <div className="md:hidden bg-[#0c1f3d] border border-white/10 rounded-xl divide-y divide-white/5">
+        {loading ? (
+          <div className="px-4 py-8 text-center text-slate-500">Carregando…</div>
+        ) : users.length === 0 ? (
+          <div className="px-4 py-8 text-center text-slate-500">Nenhum usuário.</div>
+        ) : users.map(u => {
+          const badge = STATUS_BADGE[u.status] || STATUS_BADGE.pending
+          return (
+            <div key={u.id} className="p-4 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-slate-200 text-sm truncate">{u.full_name || u.email}</div>
+                  {u.full_name && <div className="text-xs text-slate-500 truncate">{u.email}</div>}
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${badge.cls}`}>{badge.label}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-slate-500">
+                <span>
+                  <span className={u.role === 'admin' ? 'text-blue-400 font-medium' : ''}>
+                    {u.role === 'admin' ? 'Admin' : 'Piloto'}
+                  </span>
+                  {' · '}{u.flight_count} voo{u.flight_count !== 1 ? 's' : ''}
+                  {' · '}login {fmtDate(u.last_sign_in_at)}
+                </span>
+              </div>
+              <UserActions u={u} />
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Desktop: tabela */}
+      <div className="hidden md:block bg-[#0c1f3d] border border-white/10 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-slate-500 uppercase tracking-wider border-b border-white/10">
@@ -96,7 +158,6 @@ export default function Admin() {
               <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-500">Nenhum usuário.</td></tr>
             ) : users.map(u => {
               const badge = STATUS_BADGE[u.status] || STATUS_BADGE.pending
-              const isSelf = u.id === profile?.id
               return (
                 <tr key={u.id} className="hover:bg-white/[0.02]">
                   <td className="px-5 py-3">
@@ -113,28 +174,7 @@ export default function Admin() {
                   </td>
                   <td className="px-3 py-3 text-slate-400 font-mono text-xs">{fmtDate(u.last_sign_in_at)}</td>
                   <td className="px-3 py-3 text-center text-slate-300 font-mono">{u.flight_count}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      {u.status === 'pending' && (
-                        <IconBtn onClick={() => run(() => adminApprove(u.id), `${u.email} aprovado.`)}
-                          title="Aprovar" color="text-green-400"><CheckCircle2 size={16} /></IconBtn>
-                      )}
-                      {u.status === 'active' && !isSelf && (
-                        <IconBtn onClick={() => run(() => adminDisable(u.id), `${u.email} desativado.`)}
-                          title="Desativar" color="text-amber-400"><Ban size={16} /></IconBtn>
-                      )}
-                      {u.role !== 'admin' && (
-                        <IconBtn onClick={() => run(() => adminPromote(u.id), `${u.email} promovido a admin.`)}
-                          title="Promover a admin" color="text-blue-400"><ArrowUpCircle size={16} /></IconBtn>
-                      )}
-                      <IconBtn onClick={() => run(() => adminResetPassword(u.id), `Email de reset enviado para ${u.email}.`)}
-                        title="Resetar senha"><KeyRound size={16} /></IconBtn>
-                      {!isSelf && (
-                        <IconBtn onClick={() => setConfirmDelete(u)}
-                          title="Remover" color="text-red-400"><Trash2 size={16} /></IconBtn>
-                      )}
-                    </div>
-                  </td>
+                  <td className="px-5 py-3"><UserActions u={u} /></td>
                 </tr>
               )
             })}

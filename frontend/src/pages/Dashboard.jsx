@@ -2,22 +2,28 @@ import { useEffect, useState } from 'react'
 import { getStats, getFlights } from '../api'
 import StatCard from '../components/StatCard'
 import { Clock, Plane, MapPin } from 'lucide-react'
-
-const toHHMM = (decimalHours) => {
-  const totalMin = Math.round(decimalHours * 60)
-  const hh = String(Math.floor(totalMin / 60)).padStart(2, '0')
-  const mm = String(totalMin % 60).padStart(2, '0')
-  return `${hh}:${mm}`
-}
+import { hoursToHHMM, durationHHMM, fmtDateBR } from '../lib/utils'
+import { useToast } from '../components/Toast'
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null)
   const [recent, setRecent] = useState([])
+  const [loading, setLoading] = useState(true)
+  const toast = useToast()
 
   useEffect(() => {
-    getStats().then(setStats).catch(() => {})
-    getFlights({ limit: 5 }).then(setRecent).catch(() => {})
+    Promise.all([
+      getStats().then(setStats),
+      getFlights({ limit: 5 }).then(setRecent),
+    ])
+      .catch(() => toast('Não consegui carregar o dashboard. Verifique sua conexão.', 'error'))
+      .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500 py-20">Carregando...</div>
+  }
 
   return (
     <div className="p-4 md:p-8 space-y-8">
@@ -29,7 +35,7 @@ export default function Dashboard() {
       {stats && (
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard label="Total de Voos" value={stats.total_flights} icon={Plane} color="blue" />
-          <StatCard label="Horas Totais" value={toHHMM(stats.total_block_hours)} icon={Clock} color="green" />
+          <StatCard label="Horas Totais" value={hoursToHHMM(stats.total_block_hours)} icon={Clock} color="green" />
           <StatCard label="Aeroportos Visitados" value={stats.unique_airports} icon={MapPin} color="purple" />
           <StatCard label="Aeronaves Utilizadas" value={stats.unique_aircraft} icon={Plane} color="amber" />
         </div>
@@ -54,11 +60,11 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {recent.map(f => {
-                  const block = toHHMM((new Date(f.arrival_time) - new Date(f.departure_time)) / 3600000)
+                  const block = durationHHMM(f.departure_time, f.arrival_time)
                   return (
                     <tr key={f.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="px-3 md:px-5 py-3 text-slate-300">
-                        {f.date.slice(8,10)}/{f.date.slice(5,7)}/{f.date.slice(0,4)}
+                        {fmtDateBR(f.date)}
                       </td>
                       <td className="px-3 md:px-5 py-3">
                         <span className="font-mono text-blue-300">{f.origin_icao}</span>

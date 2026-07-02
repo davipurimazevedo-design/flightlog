@@ -1,12 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { MessageCircle, CheckCircle2, Pencil, X } from 'lucide-react'
-
-const toHHMM = (dep, arr) => {
-  const mins = Math.round((new Date(arr) - new Date(dep)) / 60000)
-  const hh = String(Math.floor(mins / 60)).padStart(2, '0')
-  const mm = String(mins % 60).padStart(2, '0')
-  return `${hh}:${mm}`
-}
+import { durationHHMM } from '../lib/utils'
 
 export default function PendingReviewModal({ flights, onConfirm, onDismiss, onDismissAll }) {
   const navigate = useNavigate()
@@ -49,7 +43,7 @@ export default function PendingReviewModal({ flights, onConfirm, onDismiss, onDi
                     {f.destination_icao}
                   </span>
                   <span className="text-slate-500 text-xs ml-1">
-                    {toHHMM(f.departure_time, f.arrival_time)}h
+                    {durationHHMM(f.departure_time, f.arrival_time)}h
                   </span>
                 </div>
                 <div className="text-xs text-slate-500 mt-0.5">

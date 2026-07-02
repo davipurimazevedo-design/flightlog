@@ -2,20 +2,14 @@ import { useEffect, useState, useCallback } from 'react'
 import { getFlights, countFlights, deleteFlight, getAircraft } from '../api'
 import { Trash2, Pencil, ChevronUp, ChevronDown, ChevronsUpDown, Search, X, FileDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import logoSrc from '../assets/logo.png'
 import { useDebounce } from '../hooks/useDebounce'
 import { useToast } from '../components/Toast'
 import ConfirmModal from '../components/ConfirmModal'
 
-const PAGE_SIZE = 20
+import { minutesToHHMM as toHHMM } from '../lib/utils'
 
-const toHHMM = (totalMinutes) => {
-  const hh = String(Math.floor(totalMinutes / 60)).padStart(2, '0')
-  const mm = String(totalMinutes % 60).padStart(2, '0')
-  return `${hh}:${mm}`
-}
+const PAGE_SIZE = 20
 
 function SortIcon({ col, sortBy, sortDir }) {
   if (sortBy !== col) return <ChevronsUpDown size={12} className="inline ml-1 text-slate-600" />
@@ -103,6 +97,11 @@ export default function Logbook() {
 
   // ── Exportar PDF ───────────────────────────────────────────────────────────
   const exportPDF = async () => {
+    // jspdf é pesado (~250KB) — baixa só quando o usuário realmente exporta
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ])
     // Busca TODOS os voos com os filtros ativos (sem paginação)
     const allFlights = await getFlights({ ...buildParams(), skip: 0, limit: 9999, sort_by: sortBy, sort_dir: sortDir })
 

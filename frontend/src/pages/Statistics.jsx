@@ -46,13 +46,8 @@ function ChartCard({ title, children }) {
   )
 }
 
-// ── Helper HH:MM ────────────────────────────────────────────────────────────
-const toHHMM = (decimalHours) => {
-  const totalMin = Math.round((decimalHours || 0) * 60)
-  const hh = String(Math.floor(totalMin / 60)).padStart(2, '0')
-  const mm = String(totalMin % 60).padStart(2, '0')
-  return `${hh}:${mm}`
-}
+// ── Helper HH:MM (fonte única em lib/utils) ─────────────────────────────────
+import { hoursToHHMM as toHHMM } from '../lib/utils'
 
 // ── Cores das barras ────────────────────────────────────────────────────────
 const BAR_COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe']

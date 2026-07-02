@@ -59,9 +59,21 @@ def _last_sign_in_map() -> dict[str, str]:
         return {}
 
 
+def _flight_count(db: Session, user_id: str) -> int:
+    return db.query(func.count(Flight.id)).filter(Flight.owner_id == user_id).scalar() or 0
+
+
+def _to_admin_user(p: Profile, db: Session) -> AdminUser:
+    """Monta o AdminUser com a contagem de voos real (usado nos retornos de ação)."""
+    return AdminUser(
+        id=p.id, email=p.email, full_name=p.full_name, role=p.role,
+        status=p.status, flight_count=_flight_count(db, p.id), last_sign_in_at=None,
+    )
+
+
 @router.get("/users", response_model=list[AdminUser])
 def list_users(db: Session = Depends(get_db), _admin: Profile = Depends(require_admin)):
-    profiles = db.query(Profile).order_by(Profile.created_at.asc()).all()
+    profiles = db.query(Profile).order_by(Profile.created_at.asc()).limit(200).all()
 
     # Contagem de voos por dono, em uma query só.
     counts = dict(
@@ -95,19 +107,18 @@ def approve_user(user_id: str, db: Session = Depends(get_db), _admin: Profile = 
     p = _get_profile(user_id, db)
     p.status = "active"
     db.commit()
-    return AdminUser(id=p.id, email=p.email, full_name=p.full_name, role=p.role,
-                     status=p.status, flight_count=0, last_sign_in_at=None)
+    return _to_admin_user(p, db)
 
 
 @router.post("/users/{user_id}/disable", response_model=AdminUser)
 def disable_user(user_id: str, db: Session = Depends(get_db), admin: Profile = Depends(require_admin)):
+    # `admin` pode ser None quando a auth está desligada (dev) — daí não há "si mesmo".
     if admin and admin.id == user_id:
         raise HTTPException(status_code=400, detail="Você não pode desativar a si mesmo")
     p = _get_profile(user_id, db)
     p.status = "disabled"
     db.commit()
-    return AdminUser(id=p.id, email=p.email, full_name=p.full_name, role=p.role,
-                     status=p.status, flight_count=0, last_sign_in_at=None)
+    return _to_admin_user(p, db)
 
 
 @router.post("/users/{user_id}/promote", response_model=AdminUser)
@@ -118,8 +129,7 @@ def promote_user(user_id: str, db: Session = Depends(get_db), _admin: Profile = 
     if p.status == "pending":
         p.status = "active"
     db.commit()
-    return AdminUser(id=p.id, email=p.email, full_name=p.full_name, role=p.role,
-                     status=p.status, flight_count=0, last_sign_in_at=None)
+    return _to_admin_user(p, db)
 
 
 @router.post("/users/{user_id}/reset-password")

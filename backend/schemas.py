@@ -1,12 +1,20 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional
 
 
 class AircraftCreate(BaseModel):
-    registration: str
-    model: str
+    registration: str = Field(min_length=1, max_length=20)
+    model: str = Field(min_length=1, max_length=60)
     category: str = "SEP"
+
+    @field_validator("registration", "model")
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("não pode ser vazio")
+        return v
 
 
 class AircraftOut(AircraftCreate):
@@ -39,10 +47,15 @@ class FlightCreate(BaseModel):
     source: Optional[str] = "app"
     needs_review: Optional[bool] = False
 
+    # NOTA: origem == destino é PERMITIDO de propósito — voo local (treinamento,
+    # tráfego) decola e pousa no mesmo aeródromo. O logbook do Davi tem vários.
     @field_validator("origin_icao", "destination_icao")
     @classmethod
     def upper_icao(cls, v: str) -> str:
-        return v.upper()
+        v = v.strip().upper()
+        if len(v) != 4 or not v.isalpha():
+            raise ValueError("código ICAO deve ter exatamente 4 letras (ex: SBBR)")
+        return v
 
 
 class FlightOut(BaseModel):

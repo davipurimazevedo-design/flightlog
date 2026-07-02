@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { getAircraft, searchAirports, createFlight, updateFlight, getFlight } from '../api'
 import { useDebounce } from '../hooks/useDebounce'
 import { useToast } from '../components/Toast'
@@ -21,6 +21,7 @@ const empty = {
 export default function FlightForm() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const isEdit = Boolean(id)
   const toast = useToast()
 
@@ -55,6 +56,15 @@ export default function FlightForm() {
 
   useEffect(() => {
     getAircraft().then(setAircraft).catch(() => {})
+
+    // Pré-preenchimento vindo de "Registrar volta" (FlightDetail)
+    const prefill = location.state?.prefill
+    if (!isEdit && prefill) {
+      setForm(p => ({ ...p, ...prefill }))
+      setOriginSearch(prefill.origin_icao || '')
+      setDestSearch(prefill.destination_icao || '')
+    }
+
     if (isEdit) {
       getFlight(id).then(f => {
         // departure_time / arrival_time vêm como ISO string do backend

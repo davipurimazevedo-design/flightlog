@@ -129,6 +129,13 @@ def test_admin_bloqueia_piloto_comum(auth_on, client, db):
     assert client.get("/admin/users", headers=auth_headers("comum")).status_code == 403
 
 
+def test_airports_seed_exige_admin(auth_on, client, db):
+    """POST /airports/seed dispara chamadas externas — só admin pode."""
+    assert client.post("/airports/seed").status_code == 401  # sem token
+    make_profile(db, "comum2", role="pilot", status="active")
+    assert client.post("/airports/seed", headers=auth_headers("comum2")).status_code == 403
+
+
 def test_admin_libera_admin(auth_on, client, db):
     make_profile(db, "chefe", role="admin", status="active")
     r = client.get("/admin/users", headers=auth_headers("chefe"))

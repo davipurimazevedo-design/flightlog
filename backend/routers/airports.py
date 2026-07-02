@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from database import get_db
-from models import Airport
+from models import Airport, Profile
 from schemas import AirportOut
+from auth import require_admin
 import httpx
 
 router = APIRouter(prefix="/airports", tags=["airports"])
+log = logging.getLogger("uvicorn.error")
 
 # GeoAISWEB WFS — fonte oficial DECEA (sem autenticação)
 GEOAISWEB_WFS = "https://geoaisweb.decea.mil.br/geoserver/wfs"
@@ -43,6 +47,7 @@ async def fetch_from_aisweb(icao: str) -> dict | None:
             "longitude": float(props["longitude_dec"]),
         }
     except Exception as e:
+        log.warning(f"GeoAISWEB indisponível ao buscar {icao}: {e}")
         return None
 
 
@@ -83,12 +88,13 @@ async def search_aisweb(q: str, limit: int = 10) -> list[dict]:
                 "longitude": float(p["longitude_dec"]),
             })
         return results
-    except Exception:
+    except Exception as e:
+        log.warning(f"GeoAISWEB indisponível na busca '{q}': {e}")
         return []
 
 
 @router.get("/search", response_model=list[AirportOut])
-async def search_airports(q: str, db: Session = Depends(get_db)):
+async def search_airports(q: str = Query(min_length=2, max_length=60), db: Session = Depends(get_db)):
     """Busca aeroportos: primeiro no cache local, depois consulta o GeoAISWEB (DECEA)."""
     q_clean = q.upper().strip()
 
@@ -155,7 +161,7 @@ def get_airport(icao: str, db: Session = Depends(get_db)):
 
 
 @router.post("/seed")
-async def seed_airports(db: Session = Depends(get_db)):
+async def seed_airports(db: Session = Depends(get_db), _admin: Profile | None = Depends(require_admin)):
     """Busca os principais aeródromos brasileiros diretamente do GeoAISWEB (DECEA) e salva no cache."""
     # Códigos ICAO dos principais aeródromos do Brasil
     icao_list = [

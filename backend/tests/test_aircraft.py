@@ -59,3 +59,12 @@ def test_delete_aircraft(client):
 def test_delete_aircraft_inexistente_retorna_404(client):
     r = client.delete("/aircraft/9999")
     assert r.status_code == 404
+
+
+def test_create_aircraft_matricula_vazia_retorna_422(client):
+    for body in (
+        {"registration": "", "model": "Cessna", "category": "SEP"},
+        {"registration": "   ", "model": "Cessna", "category": "SEP"},
+        {"registration": "PT-OK", "model": "", "category": "SEP"},
+    ):
+        assert client.post("/aircraft/", json=body).status_code == 422, f"aceitou {body}"

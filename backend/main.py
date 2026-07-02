@@ -60,6 +60,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def security_headers(request, call_next):
+    """Headers defensivos básicos (API JSON — impacto zero no app)."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    return response
+
+
 app.include_router(flights.router)
 app.include_router(aircraft.router)
 app.include_router(airports.router)

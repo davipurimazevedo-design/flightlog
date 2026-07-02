@@ -10,12 +10,8 @@ import {
   useMap,
 } from '@/components/ui/map'
 import { getMapRoutes } from '../api'
-
-const toHHMM = (totalMinutes) => {
-  const hh = String(Math.floor(totalMinutes / 60)).padStart(2, '0')
-  const mm = String(totalMinutes % 60).padStart(2, '0')
-  return `${hh}:${mm}`
-}
+import { useToast } from '../components/Toast'
+import { minutesToHHMM as toHHMM } from '../lib/utils'
 
 /**
  * Componente interno ao <Map> que escuta o mousemove nativo do MapLibre.
@@ -46,9 +42,13 @@ export default function MapView() {
   const [hovered, setHovered]   = useState(null)
   const [mousePos, setMousePos] = useState(null)
   const containerRef = useRef(null)
+  const toast = useToast()
 
   useEffect(() => {
-    getMapRoutes().then(setRoutes).catch(() => {})
+    getMapRoutes()
+      .then(setRoutes)
+      .catch(() => toast('Não consegui carregar as rotas do mapa.', 'error'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Aeroportos únicos para markers

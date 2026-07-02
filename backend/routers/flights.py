@@ -160,7 +160,8 @@ def get_detailed_stats(
     if date_to:
         q = q.filter(Flight.date <= datetime.fromisoformat(date_to))
 
-    flights = q.order_by(Flight.date).all()
+    # Cap defensivo: análise carrega os voos em memória — 5000 cobre décadas de carreira
+    flights = q.order_by(Flight.date).limit(5000).all()
 
     if not flights:
         return {
@@ -265,7 +266,7 @@ def get_detailed_stats(
 @router.get("/map-routes")
 def get_map_routes(db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
     """Return all unique routes with airport coordinates, aircraft and hours for map rendering."""
-    flights = _scope(db.query(Flight), owner).all()
+    flights = _scope(db.query(Flight), owner).limit(5000).all()
     if not flights:
         return []
 
@@ -339,7 +340,7 @@ def get_map_routes(db: Session = Depends(get_db), owner: Profile | None = Depend
 def get_pending_review(db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
     """Voos registrados via bot que aguardam revisão do usuário."""
     q = _scope(db.query(Flight), owner).filter(Flight.needs_review == True)
-    return q.order_by(Flight.created_at.desc()).all()
+    return q.order_by(Flight.created_at.desc()).limit(100).all()
 
 
 @router.patch("/{flight_id}/mark-reviewed", response_model=FlightOut)

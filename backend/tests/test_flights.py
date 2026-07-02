@@ -50,6 +50,21 @@ def test_criar_voo_aeronave_inexistente_retorna_404(client_with_seed):
     assert client.post("/flights/", json=payload).status_code == 404
 
 
+def test_criar_voo_icao_invalido_retorna_422(client_with_seed, sample_flight_payload):
+    """ICAO deve ter exatamente 4 letras — '1234', 'XX', 'SBBRX' são rejeitados."""
+    client, _ = client_with_seed
+    for ruim in ("1234", "XX", "SBBRX", "SB1R"):
+        payload = {**sample_flight_payload, "origin_icao": ruim}
+        assert client.post("/flights/", json=payload).status_code == 422, f"aceitou ICAO '{ruim}'"
+
+
+def test_criar_voo_mesmo_aeroporto_permitido(client_with_seed, sample_flight_payload):
+    """Voo local (origem == destino) é VÁLIDO — treinamento decola e pousa no mesmo lugar."""
+    client, _ = client_with_seed
+    payload = {**sample_flight_payload, "destination_icao": sample_flight_payload["origin_icao"]}
+    assert client.post("/flights/", json=payload).status_code == 201
+
+
 def test_criar_voo_pouso_antes_da_decolagem_retorna_400(client_with_seed, sample_flight_payload):
     """Pouso <= decolagem é inválido (voo de meia-noite já chega ajustado pelo cliente)."""
     client, _ = client_with_seed
