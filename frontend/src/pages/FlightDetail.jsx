@@ -135,6 +135,24 @@ export default function FlightDetail() {
               {dest?.name || flight.destination_icao}
             </p>
             <p className="text-slate-500 text-xs mt-1">{dateStr}</p>
+            {/* Badges: função, regras, período */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              {flight.role && (
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300">
+                  {flight.role}
+                </span>
+              )}
+              {flight.flight_rules && (
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300">
+                  {flight.flight_rules}
+                </span>
+              )}
+              {flight.day_night && (
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300">
+                  {flight.day_night === 'NIGHT' ? 'Noturno' : 'Diurno'}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Ações */}

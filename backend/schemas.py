@@ -44,6 +44,9 @@ class FlightCreate(BaseModel):
     departure_time: datetime
     arrival_time: datetime
     remarks: Optional[str] = None
+    role: Optional[str] = "PIC"            # PIC | SIC | Dual | Solo
+    flight_rules: Optional[str] = "VFR"    # VFR | IFR
+    day_night: Optional[str] = "DAY"       # DAY | NIGHT
     source: Optional[str] = "app"
     needs_review: Optional[bool] = False
 
@@ -67,6 +70,9 @@ class FlightOut(BaseModel):
     departure_time: datetime
     arrival_time: datetime
     remarks: Optional[str]
+    role: Optional[str]
+    flight_rules: Optional[str]
+    day_night: Optional[str]
     source: str
     needs_review: bool
     created_at: datetime

@@ -13,6 +13,7 @@ class Profile(Base):
     full_name = Column(String, nullable=True)
     role = Column(String, default="pilot")             # 'pilot' | 'admin'
     status = Column(String, default="pending")         # 'pending' | 'active' | 'disabled'
+    prior_hours = Column(Float, default=0)             # horas de logbooks anteriores (arrasto)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 

@@ -16,11 +16,13 @@ class ProfileOut(BaseModel):
     full_name: str | None
     role: str
     status: str
+    prior_hours: float = 0
     model_config = {"from_attributes": True}
 
 
 class ProfileUpdate(BaseModel):
     full_name: str | None = None
+    prior_hours: float | None = None
 
 
 @router.get("", response_model=ProfileOut)
@@ -38,6 +40,8 @@ def update_me(payload: ProfileUpdate, db: Session = Depends(get_db), user: Profi
         raise HTTPException(status_code=404, detail="Auth desabilitada")
     if payload.full_name is not None:
         user.full_name = payload.full_name
+    if payload.prior_hours is not None:
+        user.prior_hours = max(0, payload.prior_hours)  # nunca negativo
     db.commit()
     db.refresh(user)
     return user

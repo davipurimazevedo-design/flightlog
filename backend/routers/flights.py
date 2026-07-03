@@ -123,12 +123,15 @@ def get_stats(db: Session = Depends(get_db), owner: Profile | None = Depends(req
     """Estatísticas gerais — usa SQL aggregates, sem carregar voos na memória."""
     total_flights = _scope(db.query(func.count(Flight.id)), owner).scalar() or 0
 
-    if total_flights == 0:
-        return Stats(total_flights=0, total_block_hours=0, unique_airports=0, unique_aircraft=0)
+    # Horas de logbooks anteriores (arrasto) — somam ao total da carreira.
+    prior_hours = (owner.prior_hours or 0) if owner else 0
 
-    # Horas totais via SUM no banco
+    if total_flights == 0:
+        return Stats(total_flights=0, total_block_hours=round(prior_hours, 2), unique_airports=0, unique_aircraft=0)
+
+    # Horas totais via SUM no banco + horas anteriores
     seconds = _scope(db.query(func.sum(_duration_seconds_expr(db))), owner).scalar() or 0
-    total_block_hours = round(seconds / 3600, 2)
+    total_block_hours = round(seconds / 3600 + prior_hours, 2)
 
     # Aeroportos únicos (origens + destinos)
     origins = {r[0] for r in _scope(db.query(func.distinct(Flight.origin_icao)), owner).all()}

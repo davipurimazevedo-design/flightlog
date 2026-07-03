@@ -15,6 +15,9 @@ const empty = {
   aircraft_id: '',
   departure_time: nowTime(),
   arrival_time: nowTime(),
+  role: 'PIC',
+  flight_rules: 'VFR',
+  day_night: 'DAY',
   remarks: '',
 }
 
@@ -77,6 +80,9 @@ export default function FlightForm() {
           aircraft_id: String(f.aircraft_id),
           departure_time: depTime,
           arrival_time: arrTime,
+          role: f.role || 'PIC',
+          flight_rules: f.flight_rules || 'VFR',
+          day_night: f.day_night || 'DAY',
           remarks: f.remarks || '',
         })
         setOriginSearch(f.origin_icao)
@@ -112,6 +118,9 @@ export default function FlightForm() {
         aircraft_id: Number(form.aircraft_id),
         departure_time: depISO,
         arrival_time: toISO(arrDate, form.arrival_time),
+        role: form.role,
+        flight_rules: form.flight_rules,
+        day_night: form.day_night,
         airborne_time: null,
         remarks: form.remarks || null,
       }
@@ -264,6 +273,36 @@ export default function FlightForm() {
                 <option key={a.id} value={a.id}>{a.registration} — {a.model}</option>
               ))}
             </select>
+          </div>
+        </div>
+
+        {/* Detalhes do voo */}
+        <div className="bg-[#0c1f3d] border border-white/10 rounded-xl p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Detalhes</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className={labelCls}>Função</label>
+              <select className={inputCls} value={form.role} onChange={e => set('role', e.target.value)}>
+                <option value="PIC">PIC (comandante)</option>
+                <option value="SIC">SIC (co-piloto)</option>
+                <option value="Dual">Dual (instrução)</option>
+                <option value="Solo">Solo</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Regras</label>
+              <select className={inputCls} value={form.flight_rules} onChange={e => set('flight_rules', e.target.value)}>
+                <option value="VFR">VFR</option>
+                <option value="IFR">IFR</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Período</label>
+              <select className={inputCls} value={form.day_night} onChange={e => set('day_night', e.target.value)}>
+                <option value="DAY">Diurno</option>
+                <option value="NIGHT">Noturno</option>
+              </select>
+            </div>
           </div>
         </div>
 

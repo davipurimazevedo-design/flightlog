@@ -129,6 +129,25 @@ def test_admin_bloqueia_piloto_comum(auth_on, client, db):
     assert client.get("/admin/users", headers=auth_headers("comum")).status_code == 403
 
 
+def test_prior_hours_soma_no_total(auth_on, client, db):
+    """Horas anteriores (arrasto) entram no total_block_hours, mesmo sem voos."""
+    p = Profile(id="u-prior", email="p@x.z", role="pilot", status="active", prior_hours=12.5)
+    db.add(p); db.commit()
+    r = client.get("/flights/stats", headers=auth_headers("u-prior"))
+    assert r.status_code == 200
+    assert r.json()["total_block_hours"] == 12.5
+
+
+def test_atualizar_prior_hours_via_me(auth_on, client, db):
+    make_profile(db, "u-me", email="me@x.z", status="active")
+    r = client.patch("/me", json={"prior_hours": 300}, headers=auth_headers("u-me"))
+    assert r.status_code == 200
+    assert r.json()["prior_hours"] == 300
+    # não aceita negativo
+    r2 = client.patch("/me", json={"prior_hours": -5}, headers=auth_headers("u-me"))
+    assert r2.json()["prior_hours"] == 0
+
+
 def test_airports_seed_exige_admin(auth_on, client, db):
     """POST /airports/seed dispara chamadas externas — só admin pode."""
     assert client.post("/airports/seed").status_code == 401  # sem token

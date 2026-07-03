@@ -24,6 +24,23 @@ def test_criar_voo(client_with_seed, sample_flight_payload):
     assert "id" in data
 
 
+def test_criar_voo_com_campos_completos(client_with_seed, sample_flight_payload):
+    """role/flight_rules/day_night são gravados e retornados."""
+    client, _ = client_with_seed
+    payload = {**sample_flight_payload, "role": "SIC", "flight_rules": "IFR", "day_night": "NIGHT"}
+    r = client.post("/flights/", json=payload)
+    assert r.status_code == 201
+    d = r.json()
+    assert d["role"] == "SIC" and d["flight_rules"] == "IFR" and d["day_night"] == "NIGHT"
+
+
+def test_criar_voo_campos_default(client_with_seed, sample_flight_payload):
+    """Sem informar, assume PIC/VFR/DAY."""
+    client, _ = client_with_seed
+    d = client.post("/flights/", json=sample_flight_payload).json()
+    assert d["role"] == "PIC" and d["flight_rules"] == "VFR" and d["day_night"] == "DAY"
+
+
 def test_criar_voo_aeroporto_inexistente_retorna_404(client_with_seed, seed):
     client, seed = client_with_seed
     payload = {

@@ -29,6 +29,9 @@ def _migrate():
                     END IF;
                 END $$;
             """))
+            conn.execute(sa.text(
+                "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS prior_hours DOUBLE PRECISION DEFAULT 0"
+            ))
             conn.commit()
         return
     if engine.dialect.name != "sqlite":
@@ -45,6 +48,10 @@ def _migrate():
         aircraft_cols = {row[1] for row in conn.execute(sa.text("PRAGMA table_info(aircraft)"))}
         if "owner_id" not in aircraft_cols:
             conn.execute(sa.text("ALTER TABLE aircraft ADD COLUMN owner_id TEXT"))
+
+        profile_cols = {row[1] for row in conn.execute(sa.text("PRAGMA table_info(profiles)"))}
+        if profile_cols and "prior_hours" not in profile_cols:
+            conn.execute(sa.text("ALTER TABLE profiles ADD COLUMN prior_hours REAL DEFAULT 0"))
         conn.commit()
 
 _migrate()
