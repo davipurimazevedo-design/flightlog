@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, UniqueConstraint, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database import Base
@@ -13,7 +13,9 @@ class Profile(Base):
     full_name = Column(String, nullable=True)
     role = Column(String, default="pilot")             # 'pilot' | 'admin'
     status = Column(String, default="pending")         # 'pending' | 'active' | 'disabled'
-    prior_hours = Column(Float, default=0)             # horas de logbooks anteriores (arrasto)
+    # Horas de logbooks anteriores, por ano: {"2019": 120.5, "2020": 150}. O total
+    # (soma dos valores) entra no Dashboard; a distribuição vai pro gráfico por ano.
+    prior_hours_by_year = Column(JSON, default=dict)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 

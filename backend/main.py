@@ -32,6 +32,9 @@ def _migrate():
             conn.execute(sa.text(
                 "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS prior_hours DOUBLE PRECISION DEFAULT 0"
             ))
+            conn.execute(sa.text(
+                "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS prior_hours_by_year JSON DEFAULT '{}'"
+            ))
             conn.commit()
         return
     if engine.dialect.name != "sqlite":
@@ -52,6 +55,8 @@ def _migrate():
         profile_cols = {row[1] for row in conn.execute(sa.text("PRAGMA table_info(profiles)"))}
         if profile_cols and "prior_hours" not in profile_cols:
             conn.execute(sa.text("ALTER TABLE profiles ADD COLUMN prior_hours REAL DEFAULT 0"))
+        if profile_cols and "prior_hours_by_year" not in profile_cols:
+            conn.execute(sa.text("ALTER TABLE profiles ADD COLUMN prior_hours_by_year JSON DEFAULT '{}'"))
         conn.commit()
 
 _migrate()

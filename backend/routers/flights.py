@@ -123,8 +123,8 @@ def get_stats(db: Session = Depends(get_db), owner: Profile | None = Depends(req
     """Estatísticas gerais — usa SQL aggregates, sem carregar voos na memória."""
     total_flights = _scope(db.query(func.count(Flight.id)), owner).scalar() or 0
 
-    # Horas de logbooks anteriores (arrasto) — somam ao total da carreira.
-    prior_hours = (owner.prior_hours or 0) if owner else 0
+    # Horas de logbooks anteriores (arrasto, por ano) — somam ao total da carreira.
+    prior_hours = sum((owner.prior_hours_by_year or {}).values()) if owner else 0
 
     if total_flights == 0:
         return Stats(total_flights=0, total_block_hours=round(prior_hours, 2), unique_airports=0, unique_aircraft=0)
@@ -147,6 +147,28 @@ def get_stats(db: Session = Depends(get_db), owner: Profile | None = Depends(req
         unique_airports=unique_airports,
         unique_aircraft=unique_aircraft,
     )
+
+
+@router.get("/hours-by-year")
+def hours_by_year(db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
+    """Horas por ano da carreira: voos registrados (logged) + horas anteriores (prior)."""
+    rows = _scope(
+        db.query(Flight.date, Flight.departure_time, Flight.arrival_time), owner
+    ).limit(10000).all()
+
+    logged = defaultdict(float)
+    for r in rows:
+        logged[r.date.year] += (r.arrival_time - r.departure_time).total_seconds() / 3600
+
+    prior = (owner.prior_hours_by_year or {}) if owner else {}
+    years = set(logged) | {int(y) for y in prior if str(y).isdigit()}
+
+    result = []
+    for y in sorted(years):
+        lg = round(logged.get(y, 0), 1)
+        pr = round(float(prior.get(str(y), 0)), 1)
+        result.append({"year": y, "logged": lg, "prior": pr, "total": round(lg + pr, 1)})
+    return result
 
 
 @router.get("/detailed-stats")

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getDetailedStats } from '../api'
+import { getDetailedStats, getHoursByYear } from '../api'
 import StatCard from '../components/StatCard'
 import { Clock, Plane, Route, TrendingUp } from 'lucide-react'
 import {
@@ -59,6 +59,7 @@ export default function Statistics() {
   const [customTo, setCustomTo]     = useState('')
   const [data, setData]             = useState(null)
   const [loading, setLoading]       = useState(true)
+  const [byYear, setByYear]         = useState([])   // carreira: horas por ano (independe do período)
 
   const fetchData = async (pid, from, to) => {
     setLoading(true)
@@ -82,6 +83,11 @@ export default function Statistics() {
   useEffect(() => {
     if (period !== 'custom') fetchData(period)
   }, [period])
+
+  // Horas por ano da carreira — all-time, não muda com o filtro de período.
+  useEffect(() => {
+    getHoursByYear().then(setByYear).catch(() => setByYear([]))
+  }, [])
 
   const applyCustom = () => fetchData('custom', customFrom, customTo)
 
@@ -128,6 +134,40 @@ export default function Statistics() {
           )}
         </div>
       </div>
+
+      {/* Horas por ano da carreira (voado + anterior) — independe do filtro de período */}
+      {byYear.length > 0 && (
+        <ChartCard title="Horas por Ano (carreira completa)">
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={byYear} margin={{ top: 0, right: 0, left: -8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
+              <XAxis dataKey="year" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v)}h`} width={44} />
+              <Tooltip
+                cursor={{ fill: '#ffffff08' }}
+                content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null
+                  const d = payload[0].payload
+                  return (
+                    <div className="bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-sm shadow-xl">
+                      <p className="text-slate-400 mb-1">{label}</p>
+                      {d.logged > 0 && <p className="text-blue-300 font-mono text-xs">Voado: {toHHMM(d.logged)}</p>}
+                      {d.prior > 0 && <p className="text-slate-400 font-mono text-xs">Anterior: {toHHMM(d.prior)}</p>}
+                      <p className="text-white font-bold font-mono mt-1">Total: {toHHMM(d.total)}</p>
+                    </div>
+                  )
+                }}
+              />
+              <Bar dataKey="logged" stackId="a" fill="#3b82f6" name="Voado" />
+              <Bar dataKey="prior" stackId="a" fill="#64748b" radius={[4, 4, 0, 0]} name="Anterior" />
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500" /> Registrado aqui</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-slate-500" /> Horas anteriores</span>
+          </div>
+        </ChartCard>
+      )}
 
       {loading && (
         <div className="text-center text-slate-500 py-20">Carregando...</div>

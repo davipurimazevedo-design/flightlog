@@ -16,13 +16,13 @@ class ProfileOut(BaseModel):
     full_name: str | None
     role: str
     status: str
-    prior_hours: float = 0
+    prior_hours_by_year: dict[str, float] = {}
     model_config = {"from_attributes": True}
 
 
 class ProfileUpdate(BaseModel):
     full_name: str | None = None
-    prior_hours: float | None = None
+    prior_hours_by_year: dict[str, float] | None = None
 
 
 @router.get("", response_model=ProfileOut)
@@ -40,8 +40,13 @@ def update_me(payload: ProfileUpdate, db: Session = Depends(get_db), user: Profi
         raise HTTPException(status_code=404, detail="Auth desabilitada")
     if payload.full_name is not None:
         user.full_name = payload.full_name
-    if payload.prior_hours is not None:
-        user.prior_hours = max(0, payload.prior_hours)  # nunca negativo
+    if payload.prior_hours_by_year is not None:
+        # Sanitiza: só anos plausíveis (1900-2100) e horas >= 0; descarta zeros.
+        clean = {}
+        for year, hours in payload.prior_hours_by_year.items():
+            if str(year).isdigit() and 1900 <= int(year) <= 2100 and hours and hours > 0:
+                clean[str(year)] = round(float(hours), 2)
+        user.prior_hours_by_year = clean
     db.commit()
     db.refresh(user)
     return user

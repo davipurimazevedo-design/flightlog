@@ -19,6 +19,7 @@ if (AUTH_ENABLED) {
 
 export const getStats = () => api.get('/flights/stats').then(r => r.data)
 export const getDetailedStats = (params = {}) => api.get('/flights/detailed-stats', { params }).then(r => r.data)
+export const getHoursByYear = () => api.get('/flights/hours-by-year').then(r => r.data)
 export const getMapRoutes = () => api.get('/flights/map-routes').then(r => r.data)
 export const getFlights = (params = {}) => api.get('/flights/', { params }).then(r => r.data)
 export const countFlights = (params = {}) => api.get('/flights/count', { params }).then(r => r.data)

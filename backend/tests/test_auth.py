@@ -130,22 +130,35 @@ def test_admin_bloqueia_piloto_comum(auth_on, client, db):
 
 
 def test_prior_hours_soma_no_total(auth_on, client, db):
-    """Horas anteriores (arrasto) entram no total_block_hours, mesmo sem voos."""
-    p = Profile(id="u-prior", email="p@x.z", role="pilot", status="active", prior_hours=12.5)
+    """Horas anteriores por ano entram no total_block_hours (soma), mesmo sem voos."""
+    p = Profile(id="u-prior", email="p@x.z", role="pilot", status="active",
+                prior_hours_by_year={"2019": 10.0, "2020": 2.5})
     db.add(p); db.commit()
     r = client.get("/flights/stats", headers=auth_headers("u-prior"))
     assert r.status_code == 200
     assert r.json()["total_block_hours"] == 12.5
 
 
-def test_atualizar_prior_hours_via_me(auth_on, client, db):
+def test_atualizar_prior_hours_por_ano_via_me(auth_on, client, db):
     make_profile(db, "u-me", email="me@x.z", status="active")
-    r = client.patch("/me", json={"prior_hours": 300}, headers=auth_headers("u-me"))
+    r = client.patch("/me", json={"prior_hours_by_year": {"2020": 300, "2021": 50}},
+                     headers=auth_headers("u-me"))
     assert r.status_code == 200
-    assert r.json()["prior_hours"] == 300
-    # não aceita negativo
-    r2 = client.patch("/me", json={"prior_hours": -5}, headers=auth_headers("u-me"))
-    assert r2.json()["prior_hours"] == 0
+    assert r.json()["prior_hours_by_year"] == {"2020": 300.0, "2021": 50.0}
+    # sanitiza: descarta ano inválido, horas <= 0
+    r2 = client.patch("/me", json={"prior_hours_by_year": {"2022": 10, "abc": 5, "2023": 0, "2024": -3}},
+                      headers=auth_headers("u-me"))
+    assert r2.json()["prior_hours_by_year"] == {"2022": 10.0}
+
+
+def test_hours_by_year_junta_registrado_e_anterior(auth_on, client, db, seed):
+    p = Profile(id="u-hy", email="hy@x.z", role="pilot", status="active",
+                prior_hours_by_year={"2019": 40.0})
+    db.add(p); db.commit()
+    r = client.get("/flights/hours-by-year", headers=auth_headers("u-hy"))
+    assert r.status_code == 200
+    data = {row["year"]: row for row in r.json()}
+    assert data[2019]["prior"] == 40.0 and data[2019]["logged"] == 0
 
 
 def test_airports_seed_exige_admin(auth_on, client, db):
