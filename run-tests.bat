@@ -6,15 +6,15 @@ echo   FlightLog - Testes Automatizados
 echo  ==========================================
 echo.
 
+echo [1/2] Backend (pytest)...
 cd /d "%~dp0backend"
-
-echo Instalando pytest (se necessario)...
 python -m pip install pytest httpx -q
-
-echo.
-echo Rodando testes...
-echo.
 python -m pytest
+echo.
+
+echo [2/2] Frontend (vitest)...
+cd /d "%~dp0frontend"
+call npm test
 
 echo.
 pause

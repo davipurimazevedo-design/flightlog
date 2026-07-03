@@ -8,20 +8,20 @@ from auth import require_active
 router = APIRouter(prefix="/aircraft", tags=["aircraft"])
 
 
+def _scope(q, owner: Profile | None):
+    """Restringe a query às aeronaves do dono logado. Sem auth (dev), não filtra."""
+    return q.filter(Aircraft.owner_id == owner.id) if owner else q
+
+
 @router.get("/", response_model=list[AircraftOut])
 def list_aircraft(db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
-    q = db.query(Aircraft)
-    if owner:
-        q = q.filter(Aircraft.owner_id == owner.id)
-    return q.order_by(Aircraft.registration).all()
+    return _scope(db.query(Aircraft), owner).order_by(Aircraft.registration).all()
 
 
 @router.post("/", response_model=AircraftOut, status_code=201)
 def create_aircraft(payload: AircraftCreate, db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
     # Duplicidade é checada apenas dentro do escopo do dono.
-    dup_q = db.query(Aircraft).filter(Aircraft.registration == payload.registration.upper())
-    if owner:
-        dup_q = dup_q.filter(Aircraft.owner_id == owner.id)
+    dup_q = _scope(db.query(Aircraft).filter(Aircraft.registration == payload.registration.upper()), owner)
     if dup_q.first():
         raise HTTPException(status_code=400, detail="Aircraft already registered")
     data = payload.model_dump()
@@ -35,10 +35,7 @@ def create_aircraft(payload: AircraftCreate, db: Session = Depends(get_db), owne
 
 @router.put("/{aircraft_id}", response_model=AircraftOut)
 def update_aircraft(aircraft_id: int, payload: AircraftCreate, db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
-    q = db.query(Aircraft).filter(Aircraft.id == aircraft_id)
-    if owner:
-        q = q.filter(Aircraft.owner_id == owner.id)
-    aircraft = q.first()
+    aircraft = _scope(db.query(Aircraft).filter(Aircraft.id == aircraft_id), owner).first()
     if not aircraft:
         raise HTTPException(status_code=404, detail="Aircraft not found")
     data = payload.model_dump()
@@ -52,10 +49,7 @@ def update_aircraft(aircraft_id: int, payload: AircraftCreate, db: Session = Dep
 
 @router.delete("/{aircraft_id}", status_code=204)
 def delete_aircraft(aircraft_id: int, db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
-    q = db.query(Aircraft).filter(Aircraft.id == aircraft_id)
-    if owner:
-        q = q.filter(Aircraft.owner_id == owner.id)
-    aircraft = q.first()
+    aircraft = _scope(db.query(Aircraft).filter(Aircraft.id == aircraft_id), owner).first()
     if not aircraft:
         raise HTTPException(status_code=404, detail="Aircraft not found")
     db.delete(aircraft)

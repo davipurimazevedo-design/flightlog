@@ -2,9 +2,7 @@
 __pycache__/
 *.py[cod]
 *.pyo
-backend/build/
-backend/dist/
-backend/*.spec
+.pytest_cache/
 backend/logbook.db
 
 # Telegram Bot (venv quebra no Python 3.14 — não usar)
@@ -14,15 +12,10 @@ telegram-bot/.venv/
 # Node
 node_modules/
 frontend/node_modules/
-dist-electron/
 frontend/dist/
-
-# Electron build
-.last-backend-build
 
 # Logs
 *.log
-flightlog-dev.log
 
 # OS
 .DS_Store
@@ -31,8 +24,3 @@ Thumbs.db
 # Env
 .env
 .env.local
-
-# Assets source (só manter o .ico final)
-assets/icon-source.png
-assets/*.jpg
-assets/*.png

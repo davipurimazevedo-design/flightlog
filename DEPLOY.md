@@ -1,4 +1,8 @@
-# FlightLog — Guia de Deploy (Fase 4)
+# FlightLog — Guia de Deploy
+
+> **Nota:** o deploy inicial já está feito e no ar (Vercel + Render + Supabase).
+> Este guia é **referência histórica** — serve pra recriar o ambiente do zero ou
+> entender como as peças se conectam. Trechos como "82 voos" são do setup original.
 
 Ordem obrigatória: **Supabase → Render → Vercel → amarrar CORS → virar admin**.
 Cada passo alimenta o próximo com chaves/URLs.
