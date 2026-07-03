@@ -27,6 +27,9 @@ export default function ForgotPassword() {
             Se existir uma conta com <strong className="text-white">{email}</strong>, enviamos um link
             para redefinir a senha.
           </p>
+          <p className="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+            📬 Não achou? Verifique a <strong>caixa de spam</strong> — o email pode chegar por lá.
+          </p>
         </div>
       </AuthShell>
     )
