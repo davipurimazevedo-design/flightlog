@@ -289,9 +289,19 @@ def get_detailed_stats(
 
 
 @router.get("/map-routes")
-def get_map_routes(db: Session = Depends(get_db), owner: Profile | None = Depends(require_active)):
-    """Return all unique routes with airport coordinates, aircraft and hours for map rendering."""
-    flights = _scope(db.query(Flight), owner).limit(5000).all()
+def get_map_routes(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db),
+    owner: Profile | None = Depends(require_active),
+):
+    """Rotas únicas (com coordenadas, aeronaves e horas) para o mapa, filtrável por período."""
+    q = _scope(db.query(Flight), owner)
+    if date_from:
+        q = q.filter(Flight.date >= datetime.fromisoformat(date_from))
+    if date_to:
+        q = q.filter(Flight.date <= datetime.fromisoformat(date_to))
+    flights = q.limit(5000).all()
     if not flights:
         return []
 

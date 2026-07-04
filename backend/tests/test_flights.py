@@ -228,6 +228,18 @@ def test_count_retorna_total_e_minutos(client_with_seed, sample_flight_payload):
 
 # ── Filtros ───────────────────────────────────────────────────────────────────
 
+def test_map_routes_filtra_por_periodo(client_with_seed, sample_flight_payload):
+    """map-routes respeita date_from/date_to."""
+    client, _ = client_with_seed
+    client.post("/flights/", json=sample_flight_payload)  # voo em 2026-06-01
+    # Dentro do intervalo → 1 rota
+    r = client.get("/flights/map-routes", params={"date_from": "2026-01-01", "date_to": "2026-12-31"})
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    # Fora do intervalo → vazio
+    assert client.get("/flights/map-routes", params={"date_from": "2020-01-01", "date_to": "2020-12-31"}).json() == []
+
+
 def test_filtro_por_busca_icao(client_with_seed, sample_flight_payload):
     client, _ = client_with_seed
     client.post("/flights/", json=sample_flight_payload)

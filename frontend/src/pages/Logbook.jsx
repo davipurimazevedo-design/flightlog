@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { getFlights, countFlights, deleteFlight, getAircraft } from '../api'
-import { Trash2, Pencil, ChevronUp, ChevronDown, ChevronsUpDown, Search, X, FileDown } from 'lucide-react'
+import { Trash2, Pencil, ChevronUp, ChevronDown, ChevronsUpDown, Search, X, FileDown, SlidersHorizontal } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import logoSrc from '../assets/logo.png'
 import { useDebounce } from '../hooks/useDebounce'
@@ -29,6 +29,7 @@ export default function Logbook() {
   const [dateTo, setDateTo]             = useState('')
   const [aircraftId, setAircraftId]     = useState('')
   const [aircraftList, setAircraftList] = useState([])
+  const [showFilters, setShowFilters]   = useState(false)
 
   // Debounce: só dispara a busca 400ms após parar de digitar
   const debouncedSearch = useDebounce(search, 400)
@@ -290,7 +291,8 @@ export default function Logbook() {
     setPage(1)
   }
 
-  const hasFilters = search || dateFrom || dateTo || aircraftId
+  const activeCount = [search, dateFrom, dateTo, aircraftId].filter(Boolean).length
+  const hasFilters = activeCount > 0
 
   const inputCls = "bg-[#0a1628] border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500 placeholder-slate-500"
   const thCls = "px-5 py-3 text-left cursor-pointer select-none hover:text-white transition-colors whitespace-nowrap"
@@ -307,6 +309,17 @@ export default function Logbook() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setShowFilters(v => !v)}
+            className={`flex items-center gap-2 border px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              hasFilters
+                ? 'bg-blue-600/20 border-blue-500/30 text-blue-300'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300 hover:text-white'
+            }`}
+          >
+            <SlidersHorizontal size={15} />
+            Filtros{hasFilters ? ` (${activeCount})` : ''}
+          </button>
           <button
             onClick={exportCSV}
             disabled={totalFlights === 0}
@@ -330,7 +343,8 @@ export default function Logbook() {
         </div>
       </div>
 
-      {/* Barra de filtros */}
+      {/* Barra de filtros — escondida por padrão, revelada pelo botão "Filtros" */}
+      {showFilters && (
       <div className="bg-[#0c1f3d] border border-white/10 rounded-xl p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
 
@@ -393,6 +407,7 @@ export default function Logbook() {
           )}
         </div>
       </div>
+      )}
 
       {/* Tabela */}
       {loading ? (

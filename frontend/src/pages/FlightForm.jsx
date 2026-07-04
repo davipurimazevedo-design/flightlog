@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { Plane, PlusCircle } from 'lucide-react'
 import { getAircraft, searchAirports, createFlight, updateFlight, getFlight } from '../api'
 import { useDebounce } from '../hooks/useDebounce'
 import { useToast } from '../components/Toast'
@@ -30,6 +31,7 @@ export default function FlightForm() {
 
   const [form, setForm] = useState(empty)
   const [aircraft, setAircraft] = useState([])
+  const [aircraftLoaded, setAircraftLoaded] = useState(false)
   const [originSearch, setOriginSearch] = useState('')
   const [destSearch, setDestSearch] = useState('')
   const [originResults, setOriginResults] = useState([])
@@ -58,7 +60,7 @@ export default function FlightForm() {
   }, [debouncedDest])
 
   useEffect(() => {
-    getAircraft().then(setAircraft).catch(() => {})
+    getAircraft().then(setAircraft).catch(() => {}).finally(() => setAircraftLoaded(true))
 
     // Pré-preenchimento vindo de "Registrar volta" (FlightDetail)
     const prefill = location.state?.prefill
@@ -142,6 +144,31 @@ export default function FlightForm() {
 
   const inputCls = "w-full bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
   const labelCls = "text-xs text-slate-400 mb-1 block"
+
+  // Usuário novo: sem nenhuma aeronave, não dá pra registrar voo — orienta a cadastrar.
+  if (aircraftLoaded && aircraft.length === 0 && !isEdit) {
+    return (
+      <div className="p-4 md:p-8 max-w-2xl">
+        <h1 className="text-2xl font-bold text-white mb-1">Novo Voo</h1>
+        <p className="text-slate-400 text-sm mb-6">Preencha os dados do voo</p>
+        <div className="bg-[#0c1f3d] border border-white/10 rounded-xl p-8 text-center">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center">
+            <Plane size={26} />
+          </div>
+          <h2 className="text-white font-semibold mb-1">Nenhuma aeronave cadastrada</h2>
+          <p className="text-slate-400 text-sm mb-6 max-w-sm mx-auto">
+            Antes de registrar um voo, cadastre a aeronave que você voou. Leva poucos segundos.
+          </p>
+          <button
+            onClick={() => navigate('/aircraft')}
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+          >
+            <PlusCircle size={16} /> Cadastrar aeronave
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">

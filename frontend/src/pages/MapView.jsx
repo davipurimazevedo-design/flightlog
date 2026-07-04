@@ -12,6 +12,7 @@ import {
 import { getMapRoutes } from '../api'
 import { useToast } from '../components/Toast'
 import { minutesToHHMM as toHHMM } from '../lib/utils'
+import { PERIODS, buildRange } from '../lib/periods'
 
 /**
  * Componente interno ao <Map> que escuta o mousemove nativo do MapLibre.
@@ -43,13 +44,25 @@ export default function MapView() {
   const [mousePos, setMousePos] = useState(null)
   const containerRef = useRef(null)
   const toast = useToast()
+  const [period, setPeriod]         = useState('all')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo]     = useState('')
 
-  useEffect(() => {
-    getMapRoutes()
+  const load = (pid, from, to) => {
+    const params = pid === 'custom'
+      ? { ...(from && { date_from: from }), ...(to && { date_to: to }) }
+      : buildRange(pid)
+    getMapRoutes(params)
       .then(setRoutes)
       .catch(() => toast('Não consegui carregar as rotas do mapa.', 'error'))
+  }
+
+  useEffect(() => {
+    if (period !== 'custom') load(period)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [period])
+
+  const applyCustom = () => load('custom', customFrom, customTo)
 
   // Aeroportos únicos para markers
   const airports = {}
@@ -64,11 +77,40 @@ export default function MapView() {
 
   return (
     <div className="p-8 flex flex-col gap-4 h-screen">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Mapa de Rotas</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          {routes.length} rota{routes.length !== 1 ? 's' : ''} única{routes.length !== 1 ? 's' : ''} voada{routes.length !== 1 ? 's' : ''}
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Mapa de Rotas</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            {routes.length} rota{routes.length !== 1 ? 's' : ''} única{routes.length !== 1 ? 's' : ''} voada{routes.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+
+        {/* Filtro de período */}
+        <div className="flex flex-wrap items-center gap-2">
+          {PERIODS.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setPeriod(p.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                period === p.id ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+          {period === 'custom' && (
+            <div className="flex items-center gap-2 ml-1">
+              <input type="date" className="bg-[#0a1628] border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
+              <span className="text-slate-500 text-xs">até</span>
+              <input type="date" className="bg-[#0a1628] border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                value={customTo} onChange={e => setCustomTo(e.target.value)} />
+              <button onClick={applyCustom} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                Aplicar
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div
