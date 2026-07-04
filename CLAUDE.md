@@ -6,7 +6,7 @@
   - Bug fix / ajuste pequeno → PATCH (ex: v2.0.0 → v2.0.1)
   - Nova funcionalidade → MINOR (ex: v2.0.0 → v2.1.0)
   - Redesign / mudança estrutural grande → MAJOR (ex: v2.0.0 → v3.0.0)
-- Versão atual: **v2.6.0**
+- Versão atual: **v2.6.1**
 
 ## Deploy (nuvem) — web app
 - Frontend na **Vercel**, backend FastAPI no **Render**, banco+auth no **Supabase** (Postgres).
