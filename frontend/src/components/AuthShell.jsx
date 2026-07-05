@@ -7,7 +7,10 @@ export default function AuthShell({ title, subtitle, children, footer }) {
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-2 mb-6">
           <Plane className="text-blue-400" size={26} />
-          <span className="text-white font-bold text-2xl tracking-wide">FlightLog</span>
+          <div className="flex flex-col items-end">
+            <span className="text-white font-bold text-2xl tracking-wide leading-none">FlightLog</span>
+            <span className="text-xs font-semibold text-amber-400 leading-none mt-0.5">brasil</span>
+          </div>
         </div>
 
         <div className="bg-[#0c1f3d] border border-white/10 rounded-xl shadow-2xl p-7">

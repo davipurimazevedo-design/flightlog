@@ -31,6 +31,7 @@ export default function Sidebar() {
         <Plane className="text-blue-400" size={22} />
         <div className="flex flex-col items-end">
           <span className="text-white font-bold text-lg tracking-wide leading-tight">FlightLog</span>
+          <span className="text-[9px] font-semibold text-amber-400 leading-tight -mt-0.5">brasil</span>
           <span className="text-[11px] text-slate-500 font-mono leading-tight">v{APP_VERSION}</span>
         </div>
       </div>
