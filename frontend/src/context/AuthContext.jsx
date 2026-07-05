@@ -12,13 +12,18 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)   // { id, email, role, status, full_name }
   const [loading, setLoading] = useState(AUTH_ENABLED)
+  const [profileError, setProfileError] = useState(false)  // getMe() falhou (backend dormindo, rede, CORS)
 
   // Busca o perfil (role/status) do backend depois que há sessão.
+  // Marca profileError no fracasso para o portão de acesso poder oferecer "Tentar
+  // novamente" em vez de ficar preso na splash para sempre.
   const refreshProfile = useCallback(async () => {
     try {
       setProfile(await getMe())
+      setProfileError(false)
     } catch {
       setProfile(null)
+      setProfileError(true)
     }
   }, [])
 
@@ -65,6 +70,7 @@ export function AuthProvider({ children }) {
     user: session?.user ?? null,
     profile,
     loading,
+    profileError,
     refreshProfile,
     login,
     signup,
