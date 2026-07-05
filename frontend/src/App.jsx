@@ -10,6 +10,8 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
 import ErrorBoundary from './components/ErrorBoundary'
 import BottomNav from './components/BottomNav'
 import PendingReviewModal from './components/PendingReviewModal'
@@ -89,6 +91,10 @@ export default function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* Páginas legais — públicas (linkadas no cadastro e nas Configurações) */}
+      <Route path="/privacidade" element={<Privacy />} />
+      <Route path="/termos" element={<Terms />} />
 
       {/* Todo o resto exige sessão + conta ativa (ou libera, se auth desligada) */}
       <Route path="/*" element={<Protected><AppShell /></Protected>} />

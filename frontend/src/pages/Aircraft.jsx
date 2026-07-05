@@ -131,7 +131,7 @@ export default function Aircraft() {
       <ConfirmModal
         open={confirmId !== null}
         title="Excluir aeronave"
-        message="Excluir esta aeronave? Voos já registrados com ela não são apagados."
+        message="Excluir esta aeronave? Só é possível se ela não tiver voos registrados — caso contrário, exclua ou reatribua os voos antes."
         onConfirm={handleDelete}
         onCancel={() => setConfirmId(null)}
       />

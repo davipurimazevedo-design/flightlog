@@ -68,3 +68,23 @@ def test_create_aircraft_matricula_vazia_retorna_422(client):
         {"registration": "PT-OK", "model": "", "category": "SEP"},
     ):
         assert client.post("/aircraft/", json=body).status_code == 422, f"aceitou {body}"
+
+
+def test_delete_aircraft_com_voos_retorna_409(client_with_seed, sample_flight_payload):
+    """Não deixa apagar aeronave com voos (preserva histórico) — 409 com contagem."""
+    client, seed = client_with_seed
+    client.post("/flights/", json=sample_flight_payload)
+    r = client.delete(f"/aircraft/{seed['aircraft'].id}")
+    assert r.status_code == 409
+    assert "voo" in r.json()["detail"].lower()
+    # A aeronave continua existindo (não foi removida).
+    ids = [a["id"] for a in client.get("/aircraft/").json()]
+    assert seed["aircraft"].id in ids
+
+
+def test_delete_aircraft_sem_voos_ainda_funciona(client):
+    """Sem voos vinculados, a exclusão segue retornando 204."""
+    aircraft_id = client.post(
+        "/aircraft/", json={"registration": "PT-FREE", "model": "Cessna", "category": "SEP"}
+    ).json()["id"]
+    assert client.delete(f"/aircraft/{aircraft_id}").status_code == 204

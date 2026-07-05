@@ -40,6 +40,9 @@ export const getAirport = (icao) => api.get(`/airports/${icao}`).then(r => r.dat
 // ── Conta / perfil ────────────────────────────────────────────────────────────
 export const getMe = () => api.get('/me').then(r => r.data)
 export const updateMe = (data) => api.patch('/me', data).then(r => r.data)
+// LGPD: portabilidade (baixar tudo) e direito ao esquecimento (excluir a conta).
+export const exportMyData = () => api.get('/me/export').then(r => r.data)
+export const deleteMyAccount = () => api.delete('/me')
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 export const adminListUsers = () => api.get('/admin/users').then(r => r.data)

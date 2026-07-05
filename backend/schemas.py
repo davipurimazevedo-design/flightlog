@@ -43,7 +43,7 @@ class FlightCreate(BaseModel):
     aircraft_id: int
     departure_time: datetime
     arrival_time: datetime
-    remarks: Optional[str] = None
+    remarks: Optional[str] = Field(default=None, max_length=2000)
     role: Optional[str] = "PIC"            # PIC | SIC | Dual | Solo
     flight_rules: Optional[str] = "VFR"    # VFR | IFR
     day_night: Optional[str] = "DAY"       # DAY | NIGHT

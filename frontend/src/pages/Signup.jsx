@@ -54,6 +54,11 @@ export default function Signup() {
         <AuthInput label="Senha" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
         {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
         <AuthButton type="submit" loading={loading}>Cadastrar</AuthButton>
+        <p className="text-xs text-slate-500 mt-4 text-center leading-relaxed">
+          Ao criar conta, você concorda com os{' '}
+          <Link to="/termos" className="text-blue-400 hover:underline">Termos de Uso</Link> e a{' '}
+          <Link to="/privacidade" className="text-blue-400 hover:underline">Política de Privacidade</Link>.
+        </p>
       </form>
     </AuthShell>
   )

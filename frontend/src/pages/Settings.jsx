@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Info, User, LogOut, BookMarked, Save, Plus, Trash2 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Info, User, LogOut, BookMarked, Save, Plus, Trash2, ShieldCheck, Download } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/Toast'
-import { updateMe } from '../api'
+import { updateMe, exportMyData, deleteMyAccount } from '../api'
+import ConfirmModal from '../components/ConfirmModal'
 import { minutesToHHMM } from '../lib/utils'
 import { APP_VERSION } from '../version'
 
@@ -46,10 +47,48 @@ export default function Settings() {
 
   const [rows, setRows] = useState(() => mapToRows(profile?.prior_hours_by_year))
   const [saving, setSaving] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const handleLogout = async () => {
     await logout()
     navigate('/login')
+  }
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const data = await exportMyData()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `flightlog-meus-dados-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      toast('Dados exportados!', 'success')
+    } catch {
+      toast('Não consegui exportar seus dados. Tente novamente.', 'error')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    setConfirmDelete(false)
+    setDeleting(true)
+    try {
+      await deleteMyAccount()
+      toast('Sua conta foi excluída.', 'warning')
+      await logout()
+      navigate('/login')
+    } catch {
+      toast('Não consegui excluir a conta. Tente novamente.', 'error')
+      setDeleting(false)
+    }
   }
 
   const addRow = () => setRows(r => [...r, { year: String(new Date().getFullYear() - 1), h: '0', m: '0' }])
@@ -160,6 +199,44 @@ export default function Settings() {
         </SectionCard>
       )}
 
+      {/* ── Privacidade & Dados (LGPD) ─────────────────────────────────── */}
+      {authEnabled && profile && (
+        <SectionCard icon={ShieldCheck} title="Privacidade & Dados">
+          <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+            Seus dados são seus. Baixe uma cópia completa quando quiser ou apague sua conta em definitivo.
+          </p>
+
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                       bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 transition-colors disabled:opacity-50"
+          >
+            <Download size={15} /> {exporting ? 'Exportando...' : 'Exportar meus dados'}
+          </button>
+
+          <div className="flex gap-4 mt-4 text-xs">
+            <Link to="/privacidade" className="text-blue-400 hover:underline">Política de Privacidade</Link>
+            <Link to="/termos" className="text-blue-400 hover:underline">Termos de Uso</Link>
+          </div>
+
+          {/* Zona de perigo */}
+          <div className="mt-6 pt-5 border-t border-red-500/10">
+            <button
+              onClick={() => setConfirmDelete(true)}
+              disabled={deleting}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium
+                         bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/20 transition-colors disabled:opacity-50"
+            >
+              <Trash2 size={15} /> {deleting ? 'Excluindo...' : 'Excluir minha conta'}
+            </button>
+            <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+              Remove permanentemente sua conta, aeronaves e voos. Esta ação não pode ser desfeita.
+            </p>
+          </div>
+        </SectionCard>
+      )}
+
       {/* ── Sobre ──────────────────────────────────────────────────────── */}
       <SectionCard icon={Info} title="Sobre">
         <div className="space-y-2">
@@ -168,6 +245,14 @@ export default function Settings() {
           <Row label="Criado por" value="Davi Purim" />
         </div>
       </SectionCard>
+
+      <ConfirmModal
+        open={confirmDelete}
+        title="Excluir minha conta"
+        message="Isso remove PERMANENTEMENTE sua conta, todas as aeronaves e todos os voos registrados. Esta ação não pode ser desfeita. Se quiser guardar uma cópia, exporte seus dados antes."
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   )
 }

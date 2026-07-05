@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from database import get_db
-from models import Aircraft, Profile
+from models import Aircraft, Flight, Profile
 from schemas import AircraftCreate, AircraftOut
 from auth import require_active
 
@@ -52,5 +53,15 @@ def delete_aircraft(aircraft_id: int, db: Session = Depends(get_db), owner: Prof
     aircraft = _scope(db.query(Aircraft).filter(Aircraft.id == aircraft_id), owner).first()
     if not aircraft:
         raise HTTPException(status_code=404, detail="Aircraft not found")
+    # Preserva o histórico: no Postgres a FK (sem ON DELETE) faria a exclusão
+    # estourar 500 quando há voos; aqui recusamos explicitamente com 409 e a
+    # contagem, para o usuário excluir/reatribuir os voos antes.
+    flight_count = db.query(func.count(Flight.id)).filter(Flight.aircraft_id == aircraft_id).scalar()
+    if flight_count:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Esta aeronave tem {flight_count} voo(s) registrado(s). "
+                   "Exclua ou reatribua esses voos antes de remover a aeronave.",
+        )
     db.delete(aircraft)
     db.commit()

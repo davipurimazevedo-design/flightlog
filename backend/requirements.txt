@@ -6,3 +6,4 @@ httpx==0.27.2
 psycopg2-binary==2.9.10  # driver Postgres (nuvem); SQLite local não precisa
 pyjwt[crypto]==2.10.1    # validação do JWT do Supabase (crypto = ES256/RS256 via JWKS)
 python-dotenv==1.0.1     # carrega backend/.env em dev
+sentry-sdk>=2.0,<3.0     # observabilidade opcional (ativa só com SENTRY_DSN setado)

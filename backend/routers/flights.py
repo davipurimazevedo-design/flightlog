@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database import get_db
@@ -61,8 +61,10 @@ def _apply_filters(q, search, aircraft_id, date_from, date_to):
 
 @router.get("/", response_model=list[FlightOut])
 def list_flights(
-    skip: int = 0,
-    limit: int = 20,
+    # Teto em `limit` evita queries absurdas (?limit=99999999). 10000 acomoda a
+    # exportação CSV/PDF do Logbook (que pede limit=9999) sem virar vetor de DoS.
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=10000),
     search: Optional[str] = None,
     aircraft_id: Optional[int] = None,
     date_from: Optional[datetime] = None,

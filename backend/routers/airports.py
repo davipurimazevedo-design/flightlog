@@ -15,6 +15,12 @@ log = logging.getLogger("uvicorn.error")
 GEOAISWEB_WFS = "https://geoaisweb.decea.mil.br/geoserver/wfs"
 
 
+def _cql_escape(s: str) -> str:
+    """Escapa string literal para o CQL_FILTER do GeoAISWEB: aspa simples vira '',
+    conforme o padrão OGC. Impede que a entrada quebre/injete no filtro externo."""
+    return s.replace("'", "''")
+
+
 async def fetch_from_aisweb(icao: str) -> dict | None:
     """Consulta o GeoAISWEB e retorna dados do aeródromo pelo código ICAO."""
     params = {
@@ -23,7 +29,7 @@ async def fetch_from_aisweb(icao: str) -> dict | None:
         "request": "GetFeature",
         "typeNames": "ICA:airport",
         "outputFormat": "application/json",
-        "CQL_FILTER": f"localidade_id='{icao.upper()}'",
+        "CQL_FILTER": f"localidade_id='{_cql_escape(icao.upper())}'",
     }
     try:
         # verify=False: certificado do geoaisweb.decea.mil.br pode ter problemas de cadeia
@@ -67,7 +73,10 @@ async def search_aisweb(q: str, limit: int = 10) -> list[dict]:
         "typeNames": "ICA:airport",
         "outputFormat": "application/json",
         "count": limit,
-        "CQL_FILTER": f"nome ILIKE '%{q}%' OR localidade_id ILIKE '%{q}%' OR cidade ILIKE '%{q}%'",
+        "CQL_FILTER": (
+            f"nome ILIKE '%{_cql_escape(q)}%' OR localidade_id ILIKE '%{_cql_escape(q)}%' "
+            f"OR cidade ILIKE '%{_cql_escape(q)}%'"
+        ),
     }
     try:
         async with httpx.AsyncClient(timeout=15, verify=False) as client:

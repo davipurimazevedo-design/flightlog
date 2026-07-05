@@ -254,3 +254,27 @@ def test_filtro_por_aeronave_id(client_with_seed, sample_flight_payload, seed):
     r = client.get(f"/flights/?aircraft_id={seed['aircraft'].id}")
     assert r.status_code == 200
     assert all(f["aircraft_id"] == seed["aircraft"].id for f in r.json())
+
+
+# ── Limites de entrada (robustez p/ produção) ─────────────────────────────────
+
+def test_listar_voos_limit_absurdo_retorna_422(client_with_seed):
+    """`limit` acima do teto é rejeitado (evita DoS com ?limit=99999999)."""
+    client, _ = client_with_seed
+    assert client.get("/flights/?limit=99999999").status_code == 422
+    assert client.get("/flights/?limit=0").status_code == 422
+    assert client.get("/flights/?skip=-1").status_code == 422
+
+
+def test_listar_voos_limit_da_exportacao_ainda_funciona(client_with_seed, sample_flight_payload):
+    """O limit=9999 usado pela exportação CSV/PDF continua válido."""
+    client, _ = client_with_seed
+    client.post("/flights/", json=sample_flight_payload)
+    assert client.get("/flights/?limit=9999").status_code == 200
+
+
+def test_criar_voo_remarks_gigante_retorna_422(client_with_seed, sample_flight_payload):
+    """remarks acima de 2000 chars é rejeitado (evita bloat/DoS de payload)."""
+    client, _ = client_with_seed
+    payload = {**sample_flight_payload, "remarks": "x" * 2001}
+    assert client.post("/flights/", json=payload).status_code == 422

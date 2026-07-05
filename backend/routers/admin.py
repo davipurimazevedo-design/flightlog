@@ -142,13 +142,12 @@ def reset_password(user_id: str, db: Session = Depends(get_db), _admin: Profile 
     return {"ok": True, "email": p.email}
 
 
-@router.delete("/users/{user_id}", status_code=204)
-def delete_user(user_id: str, db: Session = Depends(get_db), admin: Profile = Depends(require_admin)):
-    if admin and admin.id == user_id:
-        raise HTTPException(status_code=400, detail="Você não pode remover a si mesmo")
+def purge_account(db: Session, user_id: str) -> None:
+    """Remove o usuário no Supabase Auth e cascateia voos/aeronaves/profile no nosso
+    banco. Compartilhado entre a exclusão pelo admin e a auto-exclusão (LGPD)."""
     p = _get_profile(user_id, db)
 
-    # 1. Remove o usuário do Supabase Auth (service_role).
+    # 1. Remove o usuário do Supabase Auth (service_role). 404 = já não existe (ok).
     resp = _supabase_admin("DELETE", f"/admin/users/{user_id}")
     if resp.status_code not in (200, 204, 404):
         raise HTTPException(status_code=502, detail="Falha ao remover usuário no Supabase")
@@ -158,3 +157,10 @@ def delete_user(user_id: str, db: Session = Depends(get_db), admin: Profile = De
     db.query(Aircraft).filter(Aircraft.owner_id == user_id).delete(synchronize_session=False)
     db.delete(p)
     db.commit()
+
+
+@router.delete("/users/{user_id}", status_code=204)
+def delete_user(user_id: str, db: Session = Depends(get_db), admin: Profile = Depends(require_admin)):
+    if admin and admin.id == user_id:
+        raise HTTPException(status_code=400, detail="Você não pode remover a si mesmo")
+    purge_account(db, user_id)

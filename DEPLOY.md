@@ -71,8 +71,15 @@ Opção B — **manual** (New → Web Service):
 - Build: `pip install -r requirements.txt`
 - Start: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 - Instance: Free
-- Env vars: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+- Env vars: `ENVIRONMENT=production`, `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
   `SUPABASE_SERVICE_ROLE_KEY`, `CORS_ORIGINS` (e, opcional, `SUPABASE_JWT_SECRET`)
+
+> ⚠️ **`ENVIRONMENT=production` ativa os guardrails de segurança:** o backend **se recusa
+> a subir** (fail-fast) se `SUPABASE_URL` (auth) ou `CORS_ORIGINS` estiverem faltando, e
+> **esconde** a documentação (`/docs`, `/redoc`, `/openapi.json`). Isso é proposital —
+> evita um app público no ar com auth desligada (dados vazando entre usuários) ou CORS
+> aberto. Se o deploy falhar no boot com "Configuração de produção inválida", preencha as
+> env que faltam. No Blueprint (Opção A) o `render.yaml` já seta `ENVIRONMENT=production`.
 
 Depois do deploy, anote a URL: `https://flightlog-api.onrender.com` → vai em `VITE_API_URL`.
 

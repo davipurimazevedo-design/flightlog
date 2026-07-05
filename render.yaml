@@ -14,6 +14,9 @@ services:
       # e tenta compilar via Rust, o que falha. 3.12 tem tudo pronto.
       - key: PYTHON_VERSION
         value: "3.12.7"
+      # Ativa os guardrails de produção: recusa subir sem auth/CORS, esconde /docs.
+      - key: ENVIRONMENT
+        value: "production"
       - key: DATABASE_URL
         sync: false
       - key: SUPABASE_URL
@@ -25,4 +28,7 @@ services:
       - key: SUPABASE_JWT_SECRET
         sync: false
       - key: CORS_ORIGINS
+        sync: false
+      # Observabilidade opcional — preencha para ligar o Sentry (pode deixar vazio).
+      - key: SENTRY_DSN
         sync: false
