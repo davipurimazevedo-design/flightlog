@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, UniqueConstraint, JSON
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, UniqueConstraint, Index, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database import Base
@@ -28,8 +28,9 @@ class Aircraft(Base):
     registration = Column(String, nullable=False)               # PR-ABC
     model = Column(String, nullable=False)                      # Cessna 172
     category = Column(String, default="SEP")                   # SEP, MEP, JET, etc.
-    # Dono do registro. Nullable durante a migração; preenchido pela auth (Fase 3).
-    owner_id = Column(String, ForeignKey("profiles.id"), nullable=True, index=True)
+    # Dono do registro. ON DELETE CASCADE: ao excluir o profile, apaga suas aeronaves
+    # (bancos novos). No Postgres existente, a cascata é feita em app por purge_account().
+    owner_id = Column(String, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     flights = relationship("Flight", back_populates="aircraft")
@@ -49,6 +50,8 @@ class Airport(Base):
 
 class Flight(Base):
     __tablename__ = "flights"
+    # Índice composto: a listagem principal filtra por dono e ordena por data.
+    __table_args__ = (Index("ix_flights_owner_date", "owner_id", "date"),)
 
     id = Column(Integer, primary_key=True, index=True)
     date = Column(DateTime, nullable=False)
@@ -69,8 +72,9 @@ class Flight(Base):
     remarks = Column(Text, nullable=True)
     source = Column(String, default="app")          # "app" | "telegram"
     needs_review = Column(Boolean, default=False)   # True quando registrado via bot
-    # Dono do voo. Nullable durante a migração; preenchido pela auth (Fase 3).
-    owner_id = Column(String, ForeignKey("profiles.id"), nullable=True, index=True)
+    # Dono do voo. ON DELETE CASCADE em bancos novos; no Postgres existente a cascata
+    # é feita em app por purge_account(). aircraft_id fica RESTRICT (bloqueio na Fase 1).
+    owner_id = Column(String, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     aircraft = relationship("Aircraft", back_populates="flights")

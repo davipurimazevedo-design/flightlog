@@ -278,3 +278,11 @@ def test_criar_voo_remarks_gigante_retorna_422(client_with_seed, sample_flight_p
     client, _ = client_with_seed
     payload = {**sample_flight_payload, "remarks": "x" * 2001}
     assert client.post("/flights/", json=payload).status_code == 422
+
+
+def test_indice_composto_owner_date_existe(db):
+    """A listagem filtra por dono e ordena por data — precisa do índice composto."""
+    from sqlalchemy import inspect
+    indexes = inspect(db.bind).get_indexes("flights")
+    assert any(ix["column_names"] == ["owner_id", "date"] for ix in indexes), \
+        f"índice (owner_id, date) ausente: {[ix['column_names'] for ix in indexes]}"

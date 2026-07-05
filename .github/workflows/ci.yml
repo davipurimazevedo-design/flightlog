@@ -28,6 +28,11 @@ jobs:
           # (os testes só exercitam funções puras, sem chamadas externas)
           GROQ_API_KEY: ci-dummy
           TELEGRAM_TOKEN: ci-dummy
+      - name: Auditoria de dependências (não bloqueante)
+        continue-on-error: true
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt
 
   frontend:
     name: Frontend (vitest + build)
@@ -51,3 +56,7 @@ jobs:
       - name: Build
         working-directory: frontend
         run: npm run build
+      - name: Auditoria de dependências (não bloqueante)
+        continue-on-error: true
+        working-directory: frontend
+        run: npm audit --omit=dev

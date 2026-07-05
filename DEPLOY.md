@@ -143,6 +143,25 @@ apontando pro Postgres com seu ID de usuário.
 
 ---
 
+## 7. Backup & recuperação
+
+**Banco (Postgres/Supabase) — camada principal:**
+- O Supabase faz **backups automáticos diários** do projeto (retenção conforme o plano;
+  no free são point-in-time limitados). Restauração pelo painel: **Database → Backups**.
+- Backup manual sob demanda (recomendado antes de mudanças grandes): no seu computador,
+  com o `DATABASE_URL` do Supabase, rode
+  `pg_dump "$DATABASE_URL" > flightlog-backup-AAAA-MM-DD.sql`.
+  Restaurar: `psql "$DATABASE_URL" < flightlog-backup-AAAA-MM-DD.sql`.
+
+**Por usuário (LGPD):** cada usuário pode baixar todos os seus dados em JSON pelo app
+(**Configurações → Privacidade & Dados → Exportar meus dados**), ou via `GET /me/export`.
+
+**Cold start:** o workflow `.github/workflows/keepalive.yml` dá ping no `/health` a cada
+~10 min para o backend free do Render não dormir. Para monitoramento externo, aponte o
+**UptimeRobot** para `https://flightlog-api-owav.onrender.com/health` (retorna 503 se o DB cair).
+
+---
+
 ## Checklist rápido
 - [ ] Código no GitHub (com `.gitignore` correto)
 - [ ] Supabase criado, 5 chaves + DATABASE_URL copiadas

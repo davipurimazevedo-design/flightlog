@@ -60,6 +60,10 @@ def _migrate():
             conn.execute(sa.text(
                 "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS prior_hours_by_year JSON DEFAULT '{}'"
             ))
+            # Índice composto p/ a listagem (filtra por dono, ordena por data).
+            conn.execute(sa.text(
+                "CREATE INDEX IF NOT EXISTS ix_flights_owner_date ON flights (owner_id, date)"
+            ))
             conn.commit()
         return
     if engine.dialect.name != "sqlite":
@@ -82,6 +86,9 @@ def _migrate():
             conn.execute(sa.text("ALTER TABLE profiles ADD COLUMN prior_hours REAL DEFAULT 0"))
         if profile_cols and "prior_hours_by_year" not in profile_cols:
             conn.execute(sa.text("ALTER TABLE profiles ADD COLUMN prior_hours_by_year JSON DEFAULT '{}'"))
+        conn.execute(sa.text(
+            "CREATE INDEX IF NOT EXISTS ix_flights_owner_date ON flights (owner_id, date)"
+        ))
         conn.commit()
 
 _migrate()
