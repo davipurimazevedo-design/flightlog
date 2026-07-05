@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { MessageCircle, CheckCircle2, Pencil, X } from 'lucide-react'
-import { durationHHMM } from '../lib/utils'
+import { durationHHMM, fmtDateBR, fmtTimeHHMM } from '../lib/utils'
 
 export default function PendingReviewModal({ flights, onConfirm, onDismiss, onDismissAll }) {
   const navigate = useNavigate()
@@ -48,8 +48,8 @@ export default function PendingReviewModal({ flights, onConfirm, onDismiss, onDi
                 </div>
                 <div className="text-xs text-slate-500 mt-0.5">
                   {f.aircraft.registration} &bull;{' '}
-                  {f.date.slice(8,10)}/{f.date.slice(5,7)}/{f.date.slice(0,4)} &bull;{' '}
-                  {f.departure_time.slice(11,16)}Z – {f.arrival_time.slice(11,16)}Z
+                  {fmtDateBR(f.date)} &bull;{' '}
+                  {fmtTimeHHMM(f.departure_time)}Z – {fmtTimeHHMM(f.arrival_time)}Z
                 </div>
               </div>
 

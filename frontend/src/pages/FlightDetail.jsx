@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/map'
 import { Pencil, Trash2, ArrowLeft, ArrowLeftRight, Clock, Plane, MapPin, FileText, Calendar } from 'lucide-react'
 
-import { minutesToHHMM as toHHMM } from '../lib/utils'
+import { minutesToHHMM as toHHMM, fmtDateBR, fmtTimeHHMM, flightDurationMinutes } from '../lib/utils'
 
 function InfoCard({ icon: Icon, label, value, sub, color = 'blue' }) {
   const colors = {
@@ -72,7 +72,7 @@ export default function FlightDetail() {
   // "Registrar volta": abre o form com a rota INVERTIDA, mesma aeronave e data,
   // decolagem = pouso da ida (turnaround). O piloto só ajusta os horários.
   const handleReturnLeg = () => {
-    const arrHHMM = flight.arrival_time.slice(11, 16)
+    const arrHHMM = fmtTimeHHMM(flight.arrival_time)
     navigate('/new-flight', {
       state: {
         prefill: {
@@ -93,10 +93,10 @@ export default function FlightDetail() {
 
   if (!flight) return null
 
-  const diffMin   = Math.round((new Date(flight.arrival_time) - new Date(flight.departure_time)) / 60000)
-  const depZ      = flight.departure_time.slice(11, 16)
-  const arrZ      = flight.arrival_time.slice(11, 16)
-  const dateStr   = `${flight.date.slice(8,10)}/${flight.date.slice(5,7)}/${flight.date.slice(0,4)}`
+  const diffMin   = flightDurationMinutes(flight.departure_time, flight.arrival_time)
+  const depZ      = fmtTimeHHMM(flight.departure_time)
+  const arrZ      = fmtTimeHHMM(flight.arrival_time)
+  const dateStr   = fmtDateBR(flight.date)
 
   // Centro do mapa entre os dois aeroportos
   const hasMap = origin && dest && origin.latitude && dest.latitude

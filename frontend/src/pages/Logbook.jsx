@@ -7,7 +7,7 @@ import { useDebounce } from '../hooks/useDebounce'
 import { useToast } from '../components/Toast'
 import ConfirmModal from '../components/ConfirmModal'
 
-import { minutesToHHMM as toHHMM } from '../lib/utils'
+import { minutesToHHMM as toHHMM, fmtDateBR, fmtTimeHHMM, flightDurationMinutes } from '../lib/utils'
 
 const PAGE_SIZE = 20
 
@@ -164,15 +164,15 @@ export default function Logbook() {
     // ── Tabela ─────────────────────────────────────────────────────────────
     // Larguras ajustadas para A4 retrato (182mm utilizáveis)
     const rows = allFlights.map(f => {
-      const diffMin = Math.round((new Date(f.arrival_time) - new Date(f.departure_time)) / 60000)
+      const diffMin = flightDurationMinutes(f.departure_time, f.arrival_time)
       return [
-        `${f.date.slice(8,10)}/${f.date.slice(5,7)}/${f.date.slice(0,4)}`,
+        fmtDateBR(f.date),
         // "»" no lugar de "→": a Helvetica embutida do jsPDF é Latin-1 e não tem a seta
         `${f.origin_icao} » ${f.destination_icao}`,
         f.aircraft.registration,
         f.aircraft.model,
-        `${f.departure_time.slice(11,16)}Z`,
-        `${f.arrival_time.slice(11,16)}Z`,
+        `${fmtTimeHHMM(f.departure_time)}Z`,
+        `${fmtTimeHHMM(f.arrival_time)}Z`,
         toHHMM(diffMin),
       ]
     })
@@ -239,15 +239,15 @@ export default function Logbook() {
     const allFlights = await getFlights({ ...buildParams(), skip: 0, limit: 9999, sort_by: sortBy, sort_dir: sortDir })
     const header = ['Data', 'Origem', 'Destino', 'Matricula', 'Modelo', 'Decolagem (UTC)', 'Pouso (UTC)', 'Tempo (HH:MM)']
     const lines = allFlights.map(f => {
-      const diffMin = Math.round((new Date(f.arrival_time) - new Date(f.departure_time)) / 60000)
+      const diffMin = flightDurationMinutes(f.departure_time, f.arrival_time)
       return [
-        `${f.date.slice(8,10)}/${f.date.slice(5,7)}/${f.date.slice(0,4)}`,
+        fmtDateBR(f.date),
         f.origin_icao,
         f.destination_icao,
         f.aircraft.registration,
         f.aircraft.model,
-        `${f.departure_time.slice(11,16)}Z`,
-        `${f.arrival_time.slice(11,16)}Z`,
+        `${fmtTimeHHMM(f.departure_time)}Z`,
+        `${fmtTimeHHMM(f.arrival_time)}Z`,
         toHHMM(diffMin),
       ]
     })
@@ -421,7 +421,7 @@ export default function Logbook() {
         {/* Mobile: lista de cards (sem scroll lateral) */}
         <div className="md:hidden bg-[#0c1f3d] border border-white/10 rounded-xl divide-y divide-white/5">
           {flights.map(f => {
-            const diffMin = Math.round((new Date(f.arrival_time) - new Date(f.departure_time)) / 60000)
+            const diffMin = flightDurationMinutes(f.departure_time, f.arrival_time)
             return (
               <div
                 key={f.id}
@@ -438,10 +438,10 @@ export default function Logbook() {
                 </div>
                 <div className="flex items-center justify-between mt-1.5 text-xs text-slate-400">
                   <span>
-                    {f.date.slice(8,10)}/{f.date.slice(5,7)}/{f.date.slice(0,4)} · {f.aircraft.registration}
+                    {fmtDateBR(f.date)} · {f.aircraft.registration}
                   </span>
                   <span className="font-mono">
-                    {f.departure_time.slice(11,16)}Z–{f.arrival_time.slice(11,16)}Z
+                    {fmtTimeHHMM(f.departure_time)}Z–{fmtTimeHHMM(f.arrival_time)}Z
                   </span>
                 </div>
               </div>
@@ -477,9 +477,9 @@ export default function Logbook() {
             </thead>
             <tbody>
               {flights.map(f => {
-                const diffMin = Math.round((new Date(f.arrival_time) - new Date(f.departure_time)) / 60000)
-                const depZ = f.departure_time.slice(11, 16)
-                const arrZ = f.arrival_time.slice(11, 16)
+                const diffMin = flightDurationMinutes(f.departure_time, f.arrival_time)
+                const depZ = fmtTimeHHMM(f.departure_time)
+                const arrZ = fmtTimeHHMM(f.arrival_time)
                 return (
                   <tr
                     key={f.id}
@@ -487,7 +487,7 @@ export default function Logbook() {
                     className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     <td className="px-5 py-3 text-slate-300 whitespace-nowrap">
-                      {f.date.slice(8,10)}/{f.date.slice(5,7)}/{f.date.slice(0,4)}
+                      {fmtDateBR(f.date)}
                     </td>
                     <td className="px-5 py-3 font-mono whitespace-nowrap">
                       <span className="text-blue-300">{f.origin_icao}</span>

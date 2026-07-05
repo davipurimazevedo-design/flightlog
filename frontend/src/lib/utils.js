@@ -25,6 +25,17 @@ export function durationHHMM(depISO, arrISO) {
   return minutesToHHMM((new Date(arrISO) - new Date(depISO)) / 60000)
 }
 
+/** Duração entre dois timestamps ISO → minutos (int) — para somar totais */
+export function flightDurationMinutes(depISO, arrISO) {
+  return Math.round((new Date(arrISO) - new Date(depISO)) / 60000)
+}
+
+/** ISO "...T12:30:00Z" → "12:30" (hora Zulu, slice direto — sem new Date) */
+export function fmtTimeHHMM(iso) {
+  if (!iso) return ''
+  return iso.slice(11, 16)
+}
+
 /** ISO "2026-06-01..." → "01/06/2026" (slice direto, sem new Date — evita bug de timezone) */
 export function fmtDateBR(iso) {
   if (!iso) return ''

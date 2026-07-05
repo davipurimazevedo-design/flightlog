@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from database import get_db
 from models import Flight, Airport, Aircraft, Profile
@@ -74,7 +74,9 @@ def list_flights(
     db: Session = Depends(get_db),
     owner: Profile | None = Depends(require_active),
 ):
-    q = _scope(db.query(Flight), owner)
+    # joinedload evita N+1: sem ele, serializar cada FlightOut (que exige `aircraft`)
+    # dispararia uma query extra por voo — até 10000 no export.
+    q = _scope(db.query(Flight).options(joinedload(Flight.aircraft)), owner)
     q = _apply_filters(q, search, aircraft_id, date_from, date_to)
 
     # Ordenação
