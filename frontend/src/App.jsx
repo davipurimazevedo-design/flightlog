@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
 import Logbook from './pages/Logbook'
@@ -85,19 +86,22 @@ function AppShell() {
 
 export default function App() {
   return (
-    <Routes>
-      {/* Rotas públicas de autenticação */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+    <>
+      <Routes>
+        {/* Rotas públicas de autenticação */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-      {/* Páginas legais — públicas (linkadas no cadastro e nas Configurações) */}
-      <Route path="/privacidade" element={<Privacy />} />
-      <Route path="/termos" element={<Terms />} />
+        {/* Páginas legais — públicas (linkadas no cadastro e nas Configurações) */}
+        <Route path="/privacidade" element={<Privacy />} />
+        <Route path="/termos" element={<Terms />} />
 
-      {/* Todo o resto exige sessão + conta ativa (ou libera, se auth desligada) */}
-      <Route path="/*" element={<Protected><AppShell /></Protected>} />
-    </Routes>
+        {/* Todo o resto exige sessão + conta ativa (ou libera, se auth desligada) */}
+        <Route path="/*" element={<Protected><AppShell /></Protected>} />
+      </Routes>
+      <Analytics />
+    </>
   )
 }
