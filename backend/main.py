@@ -99,8 +99,12 @@ config.validate_production_config()
 
 def _init_sentry():
     """Observabilidade opcional: só liga com SENTRY_DSN setado e sentry-sdk instalado.
-    Nunca derruba o boot — falha vira warning."""
+    Nunca derruba o boot — falha vira aviso. Usa print(flush) em vez de log.info
+    para o status de boot aparecer SEMPRE nos logs do Render (independe do nível
+    de log), facilitando diagnosticar se a env chegou ao processo."""
     if not config.SENTRY_DSN:
+        if config.IS_PRODUCTION:
+            print("[boot] Sentry DESLIGADO — SENTRY_DSN ausente no ambiente.", flush=True)
         return
     try:
         import sentry_sdk
@@ -110,9 +114,9 @@ def _init_sentry():
             release=_app_version(),
             traces_sample_rate=0.1,
         )
-        log.info("Sentry inicializado.")
+        print("[boot] Sentry inicializado.", flush=True)
     except Exception as e:  # ImportError ou DSN inválido
-        log.warning(f"SENTRY_DSN setado mas não consegui iniciar o Sentry: {e}")
+        print(f"[boot] SENTRY_DSN setado mas falhou ao iniciar o Sentry: {e}", flush=True)
 
 
 _init_sentry()
