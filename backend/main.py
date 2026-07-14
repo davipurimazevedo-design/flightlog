@@ -237,9 +237,10 @@ app.include_router(account.router)
 app.include_router(admin.router)
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health(db: Session = Depends(get_db)):
-    """Health check p/ monitor externo (UptimeRobot) e keep-alive. Verifica o DB."""
+    """Health check p/ monitor externo (UptimeRobot) e keep-alive. Verifica o DB.
+    Aceita HEAD além de GET: alguns monitores usam HEAD e tomariam 405."""
     try:
         db.execute(text("SELECT 1"))
     except Exception:
