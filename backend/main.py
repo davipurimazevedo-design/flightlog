@@ -237,12 +237,6 @@ app.include_router(account.router)
 app.include_router(admin.router)
 
 
-# TEMPORÁRIO — valida a captura do Sentry ponta a ponta. REMOVER após o teste.
-@app.get("/debug/sentry-test")
-def _sentry_test():
-    raise RuntimeError("Teste de captura do Sentry — pode ignorar (endpoint temporário).")
-
-
 @app.get("/health")
 def health(db: Session = Depends(get_db)):
     """Health check p/ monitor externo (UptimeRobot) e keep-alive. Verifica o DB."""
