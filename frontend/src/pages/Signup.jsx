@@ -6,8 +6,10 @@ import AuthShell, { AuthInput, AuthButton } from '../components/AuthShell'
 
 export default function Signup() {
   const { signup } = useAuth()
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [accepted, setAccepted] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
@@ -15,12 +17,16 @@ export default function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    if (!name.trim()) {
+      setError('Informe seu nome.')
+      return
+    }
     if (password.length < 6) {
       setError('A senha precisa ter pelo menos 6 caracteres.')
       return
     }
     setLoading(true)
-    const { error } = await signup(email, password)
+    const { error } = await signup(email, password, name.trim())
     setLoading(false)
     if (error) {
       setError(error.message || 'Não foi possível cadastrar.')
@@ -50,15 +56,24 @@ export default function Signup() {
       footer={<>Já tem conta? <Link to="/login" className="text-blue-400 hover:underline">Entrar</Link></>}
     >
       <form onSubmit={handleSubmit}>
-        <AuthInput label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
+        <AuthInput label="Nome" type="text" value={name} onChange={e => setName(e.target.value)} required autoFocus />
+        <AuthInput label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
         <AuthInput label="Senha" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+        <label className="flex items-start gap-2 mb-4 text-xs text-slate-400 leading-relaxed cursor-pointer">
+          <input
+            type="checkbox"
+            checked={accepted}
+            onChange={e => setAccepted(e.target.checked)}
+            className="mt-0.5 accent-blue-500 shrink-0"
+          />
+          <span>
+            Li e aceito os{' '}
+            <Link to="/termos" className="text-blue-400 hover:underline">Termos de Uso</Link> e a{' '}
+            <Link to="/privacidade" className="text-blue-400 hover:underline">Política de Privacidade</Link>.
+          </span>
+        </label>
         {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
-        <AuthButton type="submit" loading={loading}>Cadastrar</AuthButton>
-        <p className="text-xs text-slate-500 mt-4 text-center leading-relaxed">
-          Ao criar conta, você concorda com os{' '}
-          <Link to="/termos" className="text-blue-400 hover:underline">Termos de Uso</Link> e a{' '}
-          <Link to="/privacidade" className="text-blue-400 hover:underline">Política de Privacidade</Link>.
-        </p>
+        <AuthButton type="submit" loading={loading} disabled={!accepted}>Cadastrar</AuthButton>
       </form>
     </AuthShell>
   )

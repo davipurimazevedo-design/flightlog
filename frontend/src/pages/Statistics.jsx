@@ -4,7 +4,7 @@ import StatCard from '../components/StatCard'
 import { Clock, Plane, Route, TrendingUp } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  Cell, CartesianGrid,
+  Cell, CartesianGrid, ReferenceLine,
 } from 'recharts'
 import { PERIODS, buildRange } from '../lib/periods'
 
@@ -171,7 +171,9 @@ export default function Statistics() {
 
             {/* Horas por mês */}
             <ChartCard title="Horas por Mês">
-              {data.hours_by_month.length > 0 ? (
+              {data.hours_by_month.length > 0 ? (() => {
+                const avg = data.hours_by_month.reduce((s, m) => s + m.hours, 0) / data.hours_by_month.length
+                return (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={data.hours_by_month} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
@@ -187,9 +189,12 @@ export default function Statistics() {
                       )
                     }} cursor={{ fill: '#ffffff08' }} />
                     <Bar dataKey="hours" radius={[4, 4, 0, 0]} fill="#3b82f6" />
+                    <ReferenceLine y={avg} stroke="#ef4444" strokeDasharray="4 4"
+                      label={{ value: `Média ${toHHMM(avg)}`, fill: '#ef4444', fontSize: 10, position: 'insideTopRight' }} />
                   </BarChart>
                 </ResponsiveContainer>
-              ) : (
+                )
+              })() : (
                 <p className="text-slate-500 text-sm text-center py-16">Sem dados</p>
               )}
             </ChartCard>

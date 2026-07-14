@@ -124,6 +124,18 @@ def test_novo_usuario_nasce_pending(auth_on, client):
     assert r.json()["status"] == "pending"
 
 
+def test_novo_usuario_recebe_full_name_do_metadata(auth_on, client):
+    """O nome do cadastro (user_metadata.full_name no JWT) vira o full_name do profile."""
+    tok = jwt.encode(
+        {"sub": "u-nome", "email": "nome@x.z", "aud": "authenticated",
+         "user_metadata": {"full_name": "Fulano de Tal"}},
+        SECRET, algorithm="HS256",
+    )
+    r = client.get("/me", headers={"Authorization": f"Bearer {tok}"})
+    assert r.status_code == 200
+    assert r.json()["full_name"] == "Fulano de Tal"
+
+
 def test_admin_bloqueia_piloto_comum(auth_on, client, db):
     make_profile(db, "comum", role="pilot", status="active")
     assert client.get("/admin/users", headers=auth_headers("comum")).status_code == 403

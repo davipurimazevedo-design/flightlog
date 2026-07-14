@@ -50,10 +50,25 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [name, setName] = useState(profile?.full_name || '')
+  const [savingName, setSavingName] = useState(false)
 
   const handleLogout = async () => {
     await logout()
     navigate('/login')
+  }
+
+  const saveName = async () => {
+    setSavingName(true)
+    try {
+      await updateMe({ full_name: name.trim() })
+      await refreshProfile()
+      toast('Nome salvo!', 'success')
+    } catch {
+      toast('Não consegui salvar o nome. Tente novamente.', 'error')
+    } finally {
+      setSavingName(false)
+    }
   }
 
   const handleExport = async () => {
@@ -132,6 +147,25 @@ export default function Settings() {
       {/* ── Conta ──────────────────────────────────────────────────────── */}
       {authEnabled && profile && (
         <SectionCard icon={User} title="Conta">
+          <div className="mb-5">
+            <label className="text-xs text-slate-500 block mb-1.5">Nome</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Seu nome"
+                className="flex-1 bg-[#0a1628] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              />
+              <button
+                onClick={saveName}
+                disabled={savingName || !name.trim() || name.trim() === (profile.full_name || '')}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save size={15} /> {savingName ? '...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
           <div className="space-y-2 mb-5">
             <Row label="Email" value={profile.email} />
             <Row label="Perfil" value={profile.role === 'admin' ? 'Administrador' : 'Piloto'} />

@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, BookOpen, Map, Plane, PlusCircle, BarChart2, Settings, Shield, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { APP_VERSION } from '../version'
+import { greeting } from '../lib/utils'
 
 const links = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -21,20 +22,20 @@ export default function Sidebar() {
   const isAdmin = profile?.role === 'admin'
 
   const bottomLinks = [
-    ...(isAdmin ? [{ to: '/admin', label: 'Administração', icon: Shield }] : []),
+    ...(isAdmin ? [{ to: '/admin', label: 'Administrador', icon: Shield }] : []),
     { to: '/settings', label: 'Configurações', icon: Settings },
   ]
 
   return (
     <aside className="hidden md:flex w-56 h-screen sticky top-0 bg-[#0c1f3d] border-r border-white/10 flex-col py-6 px-3 shrink-0 overflow-y-auto">
-      <div className="px-3 mb-8 flex items-center gap-2">
-        <Plane className="text-blue-400" size={22} />
+      <NavLink to="/" end className="px-3 mb-8 flex items-center gap-2 group" title="Ir para o Dashboard">
+        <Plane className="text-blue-400 group-hover:text-blue-300 transition-colors" size={22} />
         <div className="flex flex-col items-end">
           <span className="text-white font-bold text-lg tracking-wide leading-tight">FlightLog</span>
-          <span className="text-[9px] font-semibold text-amber-400 leading-tight -mt-0.5">brasil</span>
+          <span className="text-[9px] font-semibold text-amber-400 leading-tight -mt-0.5">Brasil</span>
           <span className="text-[11px] text-slate-500 font-mono leading-tight">v{APP_VERSION}</span>
         </div>
-      </div>
+      </NavLink>
 
       <nav className="flex flex-col gap-1 flex-1">
         {links.map(({ to, label, icon: Icon }) => (
@@ -56,7 +57,9 @@ export default function Sidebar() {
 
       {authEnabled && profile ? (
         <div className="px-3 mt-3 border-t border-white/5 pt-3">
-          <div className="text-xs text-slate-400 truncate" title={profile.email}>{profile.email}</div>
+          <div className="text-xs text-slate-300 truncate" title={profile.email}>
+            {greeting()}{profile.full_name ? `, ${profile.full_name.trim().split(' ')[0]}` : ''}!
+          </div>
           <button
             onClick={logout}
             className="mt-2 flex items-center gap-2 text-xs text-slate-500 hover:text-white transition-colors"

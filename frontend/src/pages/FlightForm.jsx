@@ -14,10 +14,10 @@ const empty = {
   origin_icao: '',
   destination_icao: '',
   aircraft_id: '',
-  departure_time: nowTime(),
-  arrival_time: nowTime(),
+  departure_time: '',
+  arrival_time: '',
   role: 'PIC',
-  flight_rules: 'VFR',
+  flight_rules: 'IFR',
   day_night: 'DAY',
   remarks: '',
 }

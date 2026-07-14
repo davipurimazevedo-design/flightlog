@@ -85,6 +85,7 @@ def get_current_user(
         profile = Profile(
             id=user_id,
             email=payload.get("email", ""),
+            full_name=(payload.get("user_metadata") or {}).get("full_name"),
             role="pilot",
             status="pending",
         )

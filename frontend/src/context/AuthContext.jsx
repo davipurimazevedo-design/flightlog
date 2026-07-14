@@ -51,8 +51,12 @@ export function AuthProvider({ children }) {
   const login = (email, password) =>
     supabase.auth.signInWithPassword({ email, password })
 
-  const signup = (email, password) =>
-    supabase.auth.signUp({ email, password })
+  const signup = (email, password, fullName) =>
+    supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName } },  // vira user_metadata.full_name no JWT
+    })
 
   const logout = () => supabase.auth.signOut()
 

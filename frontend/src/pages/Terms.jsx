@@ -1,6 +1,5 @@
 import LegalPage, { LegalSection } from '../components/LegalPage'
-
-const CONTACT = 'davipurimazevedo@gmail.com'
+import { CONTACT_EMAIL as CONTACT } from '../lib/constants'
 
 export default function Terms() {
   return (

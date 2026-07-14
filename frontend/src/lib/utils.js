@@ -41,3 +41,11 @@ export function fmtDateBR(iso) {
   if (!iso) return ''
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
 }
+
+/** Saudação conforme a hora LOCAL do usuário (não Zulu — aqui faz sentido o fuso local) */
+export function greeting(d = new Date()) {
+  const h = d.getHours()
+  if (h < 12) return 'Bom dia'
+  if (h < 18) return 'Boa tarde'
+  return 'Boa noite'
+}

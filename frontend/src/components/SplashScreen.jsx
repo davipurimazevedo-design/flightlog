@@ -57,7 +57,7 @@ export default function SplashScreen() {
         <div className="mb-6 flex flex-col items-center">
           <div className="flex flex-col items-end">
             <div className="text-[26px] font-bold text-white tracking-wide leading-tight">FlightLog</div>
-            <div className="text-[13px] font-semibold text-amber-400 leading-none -mt-0.5">brasil</div>
+            <div className="text-[13px] font-semibold text-amber-400 leading-none -mt-0.5">Brasil</div>
           </div>
           <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-500">
             Diário de Bordo Digital

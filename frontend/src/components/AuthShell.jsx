@@ -9,7 +9,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
           <Plane className="text-blue-400" size={26} />
           <div className="flex flex-col items-end">
             <span className="text-white font-bold text-2xl tracking-wide leading-none">FlightLog</span>
-            <span className="text-xs font-semibold text-amber-400 leading-none mt-0.5">brasil</span>
+            <span className="text-xs font-semibold text-amber-400 leading-none mt-0.5">Brasil</span>
           </div>
         </div>
 
