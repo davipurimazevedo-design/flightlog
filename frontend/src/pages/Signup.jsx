@@ -68,8 +68,8 @@ export default function Signup() {
           />
           <span>
             Li e aceito os{' '}
-            <Link to="/termos" className="text-blue-400 hover:underline">Termos de Uso</Link> e a{' '}
-            <Link to="/privacidade" className="text-blue-400 hover:underline">Política de Privacidade</Link>.
+            <Link to="/termos" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Termos de Uso</Link> e a{' '}
+            <Link to="/privacidade" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Política de Privacidade</Link>.
           </span>
         </label>
         {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
