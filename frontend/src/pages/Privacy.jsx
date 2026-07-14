@@ -3,7 +3,7 @@ import { CONTACT_EMAIL as CONTACT } from '../lib/constants'
 
 export default function Privacy() {
   return (
-    <LegalPage title="Política de Privacidade" updated="04/07/2026">
+    <LegalPage title="Política de Privacidade" updated="14/07/2026">
       <p className="text-slate-400">
         Esta política explica como o <strong className="text-slate-300">FlightLog</strong> trata seus dados
         pessoais, em conformidade com a Lei Geral de Proteção de Dados (LGPD – Lei nº 13.709/2018).

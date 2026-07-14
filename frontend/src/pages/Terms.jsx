@@ -3,7 +3,7 @@ import { CONTACT_EMAIL as CONTACT } from '../lib/constants'
 
 export default function Terms() {
   return (
-    <LegalPage title="Termos de Uso" updated="04/07/2026">
+    <LegalPage title="Termos de Uso" updated="14/07/2026">
       <p className="text-slate-400">
         Ao criar uma conta e usar o <strong className="text-slate-300">FlightLog</strong>, você concorda com estes termos.
         Leia com atenção.
