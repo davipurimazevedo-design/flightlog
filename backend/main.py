@@ -181,6 +181,14 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     # Loga a exceção (com request_id) no servidor, mas NUNCA a devolve ao cliente.
     rid = _req_id(request)
     log.exception(f"[request_id={rid}] Erro não tratado")
+    # Captura explícita no Sentry: como este handler de Exception trata o erro,
+    # a integração automática pode não enxergá-lo — então garantimos aqui.
+    if config.SENTRY_DSN:
+        try:
+            import sentry_sdk
+            sentry_sdk.capture_exception(exc)
+        except Exception:
+            pass
     return _error_response(500, "Erro interno do servidor", rid)
 
 # CORS: na nuvem, travar nos domínios de CORS_ORIGINS; vazio (dev/desktop) = libera tudo.
@@ -227,6 +235,12 @@ app.include_router(aircraft.router)
 app.include_router(airports.router)
 app.include_router(account.router)
 app.include_router(admin.router)
+
+
+# TEMPORÁRIO — valida a captura do Sentry ponta a ponta. REMOVER após o teste.
+@app.get("/debug/sentry-test")
+def _sentry_test():
+    raise RuntimeError("Teste de captura do Sentry — pode ignorar (endpoint temporário).")
 
 
 @app.get("/health")
