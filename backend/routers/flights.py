@@ -32,6 +32,16 @@ def _duration_seconds_expr(db: Session):
     return func.strftime("%s", Flight.arrival_time) - func.strftime("%s", Flight.departure_time)
 
 
+def _seconds_to_hours(seconds) -> float:
+    """Segundos → horas, SEMPRE float.
+
+    Cuidado de dialeto: no Postgres, SUM(EXTRACT(epoch ...)) devolve Decimal, e
+    `Decimal + float` estoura TypeError (500). Como as horas anteriores do perfil
+    são float, o float() explícito aqui é o que mantém a conta portável.
+    """
+    return float(seconds or 0) / 3600
+
+
 def _validate_times(payload: FlightCreate):
     """Pouso deve ser depois da decolagem. Voos que cruzam meia-noite chegam aqui
     com o arrival_time já no dia seguinte (frontend e bot fazem esse ajuste)."""
@@ -118,7 +128,7 @@ def count_flights(
         func.sum(_duration_seconds_expr(db))
     ).scalar() or 0
 
-    total_minutes = round(seconds_sum / 60)
+    total_minutes = round(float(seconds_sum or 0) / 60)   # float(): Decimal no Postgres
     return {"total": total, "total_minutes": total_minutes}
 
 
@@ -135,7 +145,7 @@ def get_stats(db: Session = Depends(get_db), owner: Profile | None = Depends(req
 
     # Horas totais via SUM no banco + horas anteriores
     seconds = _scope(db.query(func.sum(_duration_seconds_expr(db))), owner).scalar() or 0
-    total_block_hours = round(seconds / 3600 + prior_hours, 2)
+    total_block_hours = round(_seconds_to_hours(seconds) + float(prior_hours), 2)
 
     # Aeroportos únicos (origens + destinos)
     origins = {r[0] for r in _scope(db.query(func.distinct(Flight.origin_icao)), owner).all()}

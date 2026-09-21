@@ -286,3 +286,23 @@ def test_indice_composto_owner_date_existe(db):
     indexes = inspect(db.bind).get_indexes("flights")
     assert any(ix["column_names"] == ["owner_id", "date"] for ix in indexes), \
         f"índice (owner_id, date) ausente: {[ix['column_names'] for ix in indexes]}"
+
+
+# ── Portabilidade de dialeto ──────────────────────────────────────────────────
+
+def test_seconds_to_hours_aceita_decimal_do_postgres():
+    """Regressão: no Postgres, SUM(EXTRACT(epoch ...)) volta como Decimal, e somar
+    isso com as horas anteriores (float) estourava TypeError → 500 no /flights/stats
+    (Dashboard em branco). Os testes rodam em SQLite (float), então aqui forçamos o
+    tipo que só aparece em produção.
+    """
+    from decimal import Decimal
+    from routers.flights import _seconds_to_hours
+
+    horas = _seconds_to_hours(Decimal("5400"))   # 1h30
+    assert horas == 1.5
+    assert isinstance(horas, float)
+    # O que quebrava: somar com as horas anteriores (float). Agora é float + float.
+    assert round(horas + 128.67, 2) == 130.17
+    # Caminho vazio (sem voos) continua válido
+    assert _seconds_to_hours(None) == 0.0
