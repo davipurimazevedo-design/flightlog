@@ -151,6 +151,49 @@ def test_prior_hours_soma_no_total(auth_on, client, db):
     assert r.json()["total_block_hours"] == 12.5
 
 
+def test_detailed_stats_prior_so_em_periodo_que_cobre_o_ano(auth_on, client, db):
+    """Baldes anuais de horas anteriores só entram se o período cobrir o ano inteiro."""
+    p = Profile(id="u-ds", email="ds@x.z", role="pilot", status="active",
+                prior_hours_by_year={"2020": 10.0})
+    db.add(p); db.commit()
+    h = auth_headers("u-ds")
+
+    # "Tudo" (sem filtro) → soma
+    assert client.get("/flights/detailed-stats", headers=h).json()["summary"]["prior_hours"] == 10.0
+    # Ano inteiro de 2020 → soma
+    r = client.get("/flights/detailed-stats?date_from=2020-01-01&date_to=2020-12-31", headers=h)
+    assert r.json()["summary"]["prior_hours"] == 10.0
+    # Só um mês de 2020 → NÃO soma (não dá para fatiar balde anual)
+    r2 = client.get("/flights/detailed-stats?date_from=2020-03-01&date_to=2020-03-31", headers=h)
+    assert r2.json()["summary"]["prior_hours"] == 0.0
+    # Ano diferente → não soma
+    r3 = client.get("/flights/detailed-stats?date_from=2021-01-01&date_to=2021-12-31", headers=h)
+    assert r3.json()["summary"]["prior_hours"] == 0.0
+
+
+def test_detailed_stats_total_soma_voos_mais_prior(auth_on, client, db, seed):
+    """total_hours das Estatísticas = voos registrados + horas anteriores (igual ao Dashboard)."""
+    p = Profile(id="u-ds2", email="ds2@x.z", role="pilot", status="active",
+                prior_hours_by_year={"2019": 5.0})
+    db.add(p); db.commit()
+    h = auth_headers("u-ds2")
+
+    ac = client.post("/aircraft/", json={"registration": "PT-DS2", "model": "X", "category": "SEP"},
+                     headers=h).json()
+    r = client.post("/flights/", json={
+        "date": "2026-06-01T00:00:00Z",
+        "origin_icao": "SBPA", "destination_icao": "SBPF",
+        "aircraft_id": ac["id"],
+        "departure_time": "2026-06-01T10:00:00Z",
+        "arrival_time": "2026-06-01T12:00:00Z",   # 2h voadas
+    }, headers=h)
+    assert r.status_code == 201, r.text   # falha alto se o voo não entrar
+
+    s = client.get("/flights/detailed-stats", headers=h).json()["summary"]
+    assert s["prior_hours"] == 5.0
+    assert s["total_hours"] == 7.0   # 2h voadas + 5h anteriores
+
+
 def test_atualizar_prior_hours_por_ano_via_me(auth_on, client, db):
     make_profile(db, "u-me", email="me@x.z", status="active")
     r = client.patch("/me", json={"prior_hours_by_year": {"2020": 300, "2021": 50}},

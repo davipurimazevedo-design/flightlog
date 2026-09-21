@@ -142,6 +142,9 @@ export default function Statistics() {
               icon={Clock}
               label="Horas Totais"
               value={toHHMM(data.summary.total_hours)}
+              sub={data.summary.prior_hours > 0
+                ? `inclui ${toHHMM(data.summary.prior_hours)} de horas anteriores`
+                : undefined}
               color="green"
             />
             <StatCard

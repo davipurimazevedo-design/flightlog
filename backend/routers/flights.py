@@ -175,6 +175,32 @@ def hours_by_year(db: Session = Depends(get_db), owner: Profile | None = Depends
     return result
 
 
+def _prior_hours_in_range(owner: Profile | None, date_from: Optional[str], date_to: Optional[str]) -> float:
+    """Horas anteriores (baldes ANUAIS, sem data) que cabem INTEIRAS no período.
+
+    Um ano só entra se o filtro cobrir 01/01 a 31/12 dele — não dá para fatiar um
+    balde anual em meses, então períodos parciais não somam nada. Sem filtro
+    ("Tudo") entram todas, casando com o total do Dashboard (/flights/stats).
+    """
+    prior = (owner.prior_hours_by_year or {}) if owner else {}
+    if not prior:
+        return 0.0
+    start = datetime.fromisoformat(date_from) if date_from else None
+    end = datetime.fromisoformat(date_to) if date_to else None
+
+    total = 0.0
+    for year, hours in prior.items():
+        if not str(year).isdigit():
+            continue
+        y = int(year)
+        if start and start > datetime(y, 1, 1):
+            continue
+        if end and end < datetime(y, 12, 31):
+            continue
+        total += float(hours or 0)
+    return round(total, 2)
+
+
 @router.get("/detailed-stats")
 def get_detailed_stats(
     date_from: Optional[str] = None,
@@ -189,23 +215,35 @@ def get_detailed_stats(
     if date_to:
         q = q.filter(Flight.date <= datetime.fromisoformat(date_to))
 
+    # Horas de logbooks anteriores aplicáveis ao período (ver helper).
+    prior_hours = _prior_hours_in_range(owner, date_from, date_to)
+
     # Cap defensivo: análise carrega os voos em memória — 5000 cobre décadas de carreira
     flights = q.order_by(Flight.date).limit(5000).all()
 
     if not flights:
         return {
-            "summary": {"total_flights": 0, "total_hours": 0.0, "longest_flight": None, "top_route": None},
+            "summary": {
+                "total_flights": 0,
+                "total_hours": prior_hours,
+                "prior_hours": prior_hours,
+                "longest_flight": None,
+                "top_route": None,
+            },
             "hours_by_month": [],
             "top_airports": [],
             "hours_by_aircraft": [],
         }
 
     # -- horas de bloco por voo --
-    def block(f): return round((f.arrival_time - f.departure_time).total_seconds() / 3600, 2)
+    def block_raw(f): return (f.arrival_time - f.departure_time).total_seconds() / 3600
+    def block(f): return round(block_raw(f), 2)
 
     # -- Summary --
     all_hours = [block(f) for f in flights]
-    total_hours = round(sum(all_hours), 2)
+    # Soma SEM arredondar por voo: arredondar antes de somar acumula erro (~3 min em
+    # 82 voos) e faz o total divergir do /flights/stats, que soma os segundos direto.
+    total_hours = round(sum(block_raw(f) for f in flights), 2)
 
     longest = max(flights, key=block)
     longest_flight = {
@@ -281,7 +319,9 @@ def get_detailed_stats(
     return {
         "summary": {
             "total_flights": len(flights),
-            "total_hours": total_hours,
+            # Total da carreira no período: voos registrados + horas anteriores.
+            "total_hours": round(total_hours + prior_hours, 2),
+            "prior_hours": prior_hours,
             "total_nm": total_nm,
             "longest_flight": longest_flight,
             "top_route": top_route,
