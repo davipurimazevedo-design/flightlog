@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   X, Play, Pause, ChevronLeft, ChevronRight, Download,
   Plane, Clock, Route as RouteIcon, MapPin, Sparkles, RotateCcw, Film, Share2,
@@ -16,13 +16,9 @@ const MAP = 1, HIGHLIGHTS = 2, PLACES = 3, CARD = 4
 const LAST = CARD
 
 /** Camada do mapa: arcos que crescem + pontos dos aeroportos + câmera que acompanha. */
-function RetroMapLayer({ arcs, airports, onMapReady }) {
+function RetroMapLayer({ arcs, airports }) {
   const { map, isLoaded } = useMap()
   const fittedRef = useRef(null)
-
-  useEffect(() => {
-    if (isLoaded && map) onMapReady(map)
-  }, [isLoaded, map, onMapReady])
 
   // Enquadra o que já foi revelado — o mapa vai "abrindo" conforme o período avança.
   useEffect(() => {
@@ -95,9 +91,6 @@ export default function Retrospective({ open, onClose }) {
   const [videoFile, setVideoFile] = useState(null)
   const [videoMsg, setVideoMsg] = useState('')
   const [videoKind, setVideoKind] = useState(null)   // webcodecs | mediarecorder
-
-  const mapRef = useRef(null)
-  const handleMapReady = useCallback((m) => { mapRef.current = m }, [])
 
   const range = useMemo(
     () => (mode === 'year' ? buildYearRange(year) : buildMonthRange(year, month)),
@@ -230,15 +223,12 @@ export default function Retrospective({ open, onClose }) {
   const handleDownload = async () => {
     setSaving(true)
     try {
-      // Captura o mapa AGORA: depender de um efeito com timeout era frágil (ref não
-      // dispara re-render, então a captura podia nunca rodar e o card saía sem mapa).
-      let shot = null
-      try { shot = mapRef.current?.getCanvas().toDataURL('image/png') ?? null } catch { shot = null }
-
+      // O card renderiza o próprio mapa no tamanho dele (ver mapScene). Usar uma foto
+      // do mapa da tela cortava as rotas em telas estreitas, como as de iPhone.
       const blob = await buildRetroCard({
         periodLabel,
         pilotName: profile?.full_name || '',
-        mapShot: shot,
+        flights: data.flights,
         stats: {
           voos: total,
           minutos: data.flights.reduce((s, f) => s + (f.minutes || 0), 0),
@@ -399,14 +389,10 @@ export default function Retrospective({ open, onClose }) {
       {/* ── Experiência ──────────────────────────────────────────────────── */}
       {data && total > 0 && (
         <div className="flex-1 relative min-h-0">
-          {/* Mapa de fundo. preserveDrawingBuffer é necessário para capturar o PNG. */}
+          {/* Mapa de fundo da experiência na tela (o card e o vídeo renderizam o seu). */}
           <div className="absolute inset-0">
-            {/* canvasContextAttributes: no MapLibre v5 o preserveDrawingBuffer saiu do
-                nível raiz e mora aqui. Sem ele, getCanvas().toDataURL() volta preto. */}
-            <MapCanvas theme="dark" center={[-47.9, -15.8]} zoom={3.2}
-              canvasContextAttributes={{ preserveDrawingBuffer: true }}
-              className="h-full w-full">
-              <RetroMapLayer arcs={arcs} airports={airports} onMapReady={handleMapReady} />
+            <MapCanvas theme="dark" center={[-47.9, -15.8]} zoom={3.2} className="h-full w-full">
+              <RetroMapLayer arcs={arcs} airports={airports} />
             </MapCanvas>
           </div>
 
