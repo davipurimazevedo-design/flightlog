@@ -32,9 +32,11 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath()
 }
 
-/** Desenha a imagem cobrindo o retângulo (object-fit: cover), com corte central. */
-function drawCover(ctx, img, x, y, w, h) {
-  const scale = Math.max(w / img.width, h / img.height)
+/** Desenha a imagem cobrindo o retângulo (object-fit: cover), com corte central.
+ *  `zoom` > 1 aperta o recorte: as rotas ficam centradas pelo fitBounds, então
+ *  aproximar do centro corta a sobra de oceano/borda sem perder conteúdo. */
+function drawCover(ctx, img, x, y, w, h, zoom = 1) {
+  const scale = Math.max(w / img.width, h / img.height) * zoom
   const dw = img.width * scale
   const dh = img.height * scale
   ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh)
@@ -88,7 +90,7 @@ export async function buildRetroCard({ periodLabel, pilotName, stats, mapShot })
   if (mapShot) {
     try {
       const img = await loadImage(mapShot)
-      drawCover(ctx, img, M, mapY, W - M * 2, mapH)
+      drawCover(ctx, img, M, mapY, W - M * 2, mapH, 1.35)   // recorte mais fechado
     } catch {
       // segue sem a imagem do mapa
     }

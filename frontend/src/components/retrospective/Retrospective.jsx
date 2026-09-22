@@ -42,15 +42,16 @@ function RetroMapLayer({ arcs, airports, onMapReady }) {
 
   return (
     <>
+      {/* curvature 0 = linha reta (buildArcCoordinates devolve [from, to] direto) */}
       <MapArc
         data={arcs}
         interactive={false}
-        curvature={0.18}
-        paint={{ 'line-color': '#3b82f6', 'line-width': 2, 'line-opacity': 0.85 }}
+        curvature={0}
+        paint={{ 'line-color': '#3b82f6', 'line-width': 1.5, 'line-opacity': 0.9 }}
       />
       {airports.map(a => (
         <MapMarker key={a.icao} longitude={a.lng} latitude={a.lat}>
-          <MarkerContent><div className="size-1.5 rounded-full bg-amber-400" /></MarkerContent>
+          <MarkerContent><div className="size-1 rounded-full bg-amber-300/90" /></MarkerContent>
         </MapMarker>
       ))}
     </>
