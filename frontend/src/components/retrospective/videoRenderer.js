@@ -25,16 +25,36 @@ export const T_MAP_END = 12   // mapa desenhando as rotas
 export const T_HL_END = 16    // destaques
 export const DURATION = 20    // números finais até aqui
 
-const once = (map, ev, ms = 20000) => new Promise((resolve, reject) => {
-  const timer = setTimeout(() => reject(new Error(`timeout esperando "${ev}" do mapa`)), ms)
+const once = (map, ev, ms = 25000) => new Promise((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error(
+    'O mapa não carregou a tempo. Mantenha o app aberto na tela e tente de novo.',
+  )), ms)
   map.once(ev, () => { clearTimeout(timer); resolve() })
 })
+
+/** Espera a aba voltar a ficar visível.
+ *  O navegador suspende o WebGL em aba oculta (tela bloqueada, app em segundo
+ *  plano), e aí o mapa nunca dispara 'load'. Melhor esperar do que falhar. */
+export function waitVisible(ms = 30000) {
+  if (!document.hidden) return Promise.resolve()
+  return new Promise((resolve) => {
+    const done = () => {
+      document.removeEventListener('visibilitychange', onVis)
+      clearTimeout(timer)
+      resolve()
+    }
+    const onVis = () => { if (!document.hidden) done() }
+    const timer = setTimeout(done, ms)
+    document.addEventListener('visibilitychange', onVis)
+  })
+}
 
 /**
  * Renderiza o mapa offscreen no tamanho da área do vídeo, captura o basemap e
  * projeta os aeroportos em pixels. Devolve { basemap, logo, segments, points }.
  */
 export async function prepareScene({ flights }) {
+  await waitVisible()
   const host = document.createElement('div')
   host.style.cssText =
     `position:fixed;left:-10000px;top:0;width:${MAP_W}px;height:${MAP_H}px;pointer-events:none;`

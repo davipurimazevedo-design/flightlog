@@ -94,6 +94,7 @@ export default function Retrospective({ open, onClose }) {
   const [videoProgress, setVideoProgress] = useState(0)
   const [videoFile, setVideoFile] = useState(null)
   const [videoMsg, setVideoMsg] = useState('')
+  const [videoKind, setVideoKind] = useState(null)   // webcodecs | mediarecorder
 
   const mapRef = useRef(null)
   const handleMapReady = useCallback((m) => { mapRef.current = m }, [])
@@ -262,7 +263,7 @@ export default function Retrospective({ open, onClose }) {
   }
 
   const handleVideo = async () => {
-    setVideoStage('preparing'); setVideoProgress(0); setVideoMsg(''); setVideoFile(null)
+    setVideoStage('preparing'); setVideoProgress(0); setVideoMsg(''); setVideoFile(null); setVideoKind(null)
     try {
       // Renderiza o mapa offscreen em 9:16 e projeta os aeroportos em pixels
       const scene = await prepareScene({ flights: data.flights })
@@ -278,7 +279,11 @@ export default function Retrospective({ open, onClose }) {
           aeroportos: totalAirports,
         },
       }
-      const { blob } = await renderVideo({ scene, info, onProgress: setVideoProgress })
+      const { blob } = await renderVideo({
+        scene, info,
+        onProgress: setVideoProgress,
+        onStage: setVideoKind,
+      })
       const slug = periodLabel.replace(/\s+/g, '-').toLowerCase()
       setVideoFile(new File([blob], `flightlog-retrospectiva-${slug}.mp4`, { type: 'video/mp4' }))
       setVideoStage('ready')
@@ -507,6 +512,11 @@ export default function Retrospective({ open, onClose }) {
                             {videoStage === 'preparing'
                               ? 'Preparando o mapa...'
                               : `Gerando vídeo... ${Math.round(videoProgress * 100)}%`}
+                            {videoStage === 'encoding' && videoKind === 'mediarecorder' && (
+                              <span className="block text-slate-500 mt-1">
+                                Neste aparelho a gravação roda em tempo real — leva ~20s.
+                              </span>
+                            )}
                           </p>
                           <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                             <div className="h-full bg-amber-400 transition-[width] duration-200"
