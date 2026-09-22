@@ -164,6 +164,26 @@ def _req_id(request: Request) -> str:
     return getattr(request.state, "request_id", None) or str(uuid.uuid4())
 
 
+def _cors_headers_for(request: Request) -> dict:
+    """CORS para as respostas de erro que NÃO passam pelo CORSMiddleware.
+
+    Duas nascem fora dele: o 500 (o handler de Exception do Starlette roda no
+    ServerErrorMiddleware, o mais externo de todos) e o 429 do rate limit (este
+    middleware foi registrado depois do CORS, então também é externo). Sem o
+    Access-Control-Allow-Origin, o browser reporta "erro de CORS" e ESCONDE o erro
+    real — foi exatamente isso que mascarou um 500 em produção. Só espelhamos
+    origens da allowlist; ecoar qualquer Origin deixaria qualquer site ler o erro.
+    """
+    origin = request.headers.get("origin")
+    if not origin:
+        return {}
+    if not config.CORS_ORIGINS:       # dev/desktop: o CORSMiddleware usa ["*"]
+        return {"Access-Control-Allow-Origin": "*"}
+    if origin in config.CORS_ORIGINS:
+        return {"Access-Control-Allow-Origin": origin, "Vary": "Origin"}
+    return {}
+
+
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     # Preserva o `detail` (o frontend depende dele) e adiciona rastreabilidade.
@@ -189,7 +209,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
             sentry_sdk.capture_exception(exc)
         except Exception:
             pass
-    return _error_response(500, "Erro interno do servidor", rid)
+    return _error_response(500, "Erro interno do servidor", rid, _cors_headers_for(request))
 
 # CORS: na nuvem, travar nos domínios de CORS_ORIGINS; vazio (dev/desktop) = libera tudo.
 app.add_middleware(
@@ -211,7 +231,8 @@ async def request_context(request: Request, call_next):
         ip = request.client.host if request.client else "unknown"
         if _rate_limited(ip):
             return _error_response(
-                429, "Muitas requisições em pouco tempo. Tente novamente em instantes.", request_id
+                429, "Muitas requisições em pouco tempo. Tente novamente em instantes.",
+                request_id, _cors_headers_for(request),
             )
 
     response = await call_next(request)

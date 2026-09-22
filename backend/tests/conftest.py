@@ -20,14 +20,24 @@ from database import Base, get_db
 from main import app
 from models import Aircraft, Airport
 
-# StaticPool garante que create_all, as sessões do app e a sessão de teste
-# todas enxergam o MESMO banco em memória (sem StaticPool, cada conexão
-# cria um banco em memória separado e as tabelas "somem").
-engine = create_engine(
-    "sqlite:///:memory:",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+# Por padrão SQLite em memória (rápido, sem dependência externa). Com
+# TEST_DATABASE_URL apontando para um Postgres, a MESMA suíte roda no dialeto de
+# produção — o CI faz isso num container. Motivo: um bug de dialeto passou batido
+# aqui e quebrou produção (SUM(EXTRACT(epoch ...)) devolve Decimal no Postgres e
+# float no SQLite; somar Decimal + float é TypeError → 500 no /flights/stats).
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+
+if TEST_DATABASE_URL:
+    engine = create_engine(TEST_DATABASE_URL)
+else:
+    # StaticPool garante que create_all, as sessões do app e a sessão de teste
+    # todas enxergam o MESMO banco em memória (sem StaticPool, cada conexão
+    # cria um banco em memória separado e as tabelas "somem").
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

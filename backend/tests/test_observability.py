@@ -58,6 +58,61 @@ def test_handler_500_nao_vaza_e_tem_request_id():
     assert "segredo interno" not in resp.body.decode()
 
 
+# ── CORS nas respostas de erro (500/429) ─────────────────────────────────────
+# O 500 sai pelo ServerErrorMiddleware e o 429 pelo middleware de rate limit —
+# ambos FORA do CORSMiddleware. Sem Access-Control-Allow-Origin o browser mostra
+# "erro de CORS" e esconde o erro real (já mascarou um 500 em produção).
+
+def _run_500(origin: bytes | None):
+    headers = [(b"origin", origin)] if origin else []
+    scope = {"type": "http", "method": "GET", "path": "/x", "headers": headers, "query_string": b""}
+    return asyncio.new_event_loop().run_until_complete(
+        main.unhandled_exception_handler(Request(scope), RuntimeError("boom"))
+    )
+
+
+def test_500_inclui_cors_para_origem_permitida(monkeypatch):
+    monkeypatch.setattr(main.config, "CORS_ORIGINS", ["https://flightlogbrasil.vercel.app"])
+    resp = _run_500(b"https://flightlogbrasil.vercel.app")
+    assert resp.headers["access-control-allow-origin"] == "https://flightlogbrasil.vercel.app"
+
+
+def test_500_nao_ecoa_origem_fora_da_allowlist(monkeypatch):
+    """Ecoar qualquer Origin deixaria qualquer site ler o corpo do erro."""
+    monkeypatch.setattr(main.config, "CORS_ORIGINS", ["https://flightlogbrasil.vercel.app"])
+    resp = _run_500(b"https://site-qualquer.com")
+    assert "access-control-allow-origin" not in resp.headers
+
+
+def test_500_sem_cors_configurado_libera_geral(monkeypatch):
+    """Dev/desktop: CORS_ORIGINS vazio — o CORSMiddleware usa ["*"], aqui também."""
+    monkeypatch.setattr(main.config, "CORS_ORIGINS", [])
+    resp = _run_500(b"http://localhost:5173")
+    assert resp.headers["access-control-allow-origin"] == "*"
+
+
+def test_429_do_rate_limit_inclui_cors(client, monkeypatch):
+    """O 429 também precisa do header, senão o usuário vê 'erro de rede' em vez do aviso."""
+    monkeypatch.setattr(main.config, "RATE_LIMIT_ENABLED", True)
+    monkeypatch.setattr(main.config, "CORS_ORIGINS", ["https://flightlogbrasil.vercel.app"])
+    monkeypatch.setattr(main, "_RL_MAX", 3)
+    main._rl_hits.clear()
+    try:
+        headers = {"Origin": "https://flightlogbrasil.vercel.app"}
+        resp429 = None
+        for i in range(8):
+            r = client.post("/aircraft/",
+                            json={"registration": f"PT-C{i:02d}", "model": "Cessna", "category": "SEP"},
+                            headers=headers)
+            if r.status_code == 429:
+                resp429 = r
+                break
+        assert resp429 is not None, "rate limit não disparou"
+        assert resp429.headers["access-control-allow-origin"] == "https://flightlogbrasil.vercel.app"
+    finally:
+        main._rl_hits.clear()
+
+
 # ── Rate limiting ─────────────────────────────────────────────────────────────
 
 def test_rate_limit_retorna_429(client, monkeypatch):
