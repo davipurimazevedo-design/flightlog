@@ -306,3 +306,49 @@ def test_seconds_to_hours_aceita_decimal_do_postgres():
     assert round(horas + 128.67, 2) == 130.17
     # Caminho vazio (sem voos) continua válido
     assert _seconds_to_hours(None) == 0.0
+
+
+# ── /flights/timeline (base da retrospectiva) ─────────────────────────────────
+
+def _flight_on(payload, day, dep="10:00", arr="11:30"):
+    """Clona o payload base mudando a data/horários (Zulu)."""
+    return {**payload,
+            "date": f"{day}T00:00:00Z",
+            "departure_time": f"{day}T{dep}:00Z",
+            "arrival_time": f"{day}T{arr}:00Z"}
+
+
+def test_timeline_em_ordem_cronologica_com_coordenadas(client_with_seed, sample_flight_payload):
+    """A retrospectiva desenha rota a rota: depende da ORDEM e das coordenadas.
+    (/map-routes não serve: normaliza o par de ICAOs e descarta a data.)"""
+    client, _ = client_with_seed
+    for day in ["2026-06-10", "2026-06-01", "2026-06-05"]:   # fora de ordem de proposito
+        assert client.post("/flights/", json=_flight_on(sample_flight_payload, day)).status_code == 201
+
+    body = client.get("/flights/timeline").json()
+    assert [f["date"][:10] for f in body["flights"]] == ["2026-06-01", "2026-06-05", "2026-06-10"]
+
+    leg = body["flights"][0]
+    assert leg["origin"]["icao"] == "SBPA" and leg["destination"]["icao"] == "SBPF"
+    assert leg["origin"]["lat"] and leg["origin"]["lng"]       # coordenadas para o mapa
+    assert leg["destination"]["lat"] and leg["destination"]["lng"]
+    assert leg["minutes"] == 90
+    assert leg["nm"] > 0                                       # haversine aplicada
+    assert leg["aircraft"]["registration"] == "AT-54"
+    assert body["skipped_no_airport"] == 0
+
+
+def test_timeline_respeita_filtro_de_periodo(client_with_seed, sample_flight_payload):
+    client, _ = client_with_seed
+    for day in ["2025-12-20", "2026-03-15"]:
+        client.post("/flights/", json=_flight_on(sample_flight_payload, day))
+
+    r = client.get("/flights/timeline?date_from=2026-01-01&date_to=2026-12-31")
+    assert [f["date"][:10] for f in r.json()["flights"]] == ["2026-03-15"]
+
+
+def test_timeline_periodo_vazio_nao_quebra(client_with_seed):
+    """Período sem voos devolve shape completo (a tela mostra estado amigável)."""
+    client, _ = client_with_seed
+    body = client.get("/flights/timeline?date_from=1990-01-01&date_to=1990-12-31").json()
+    assert body == {"flights": [], "skipped_no_airport": 0}

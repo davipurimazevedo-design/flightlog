@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { getDetailedStats, getHoursByYear } from '../api'
 import StatCard from '../components/StatCard'
-import { Clock, Plane, Route, TrendingUp } from 'lucide-react'
+import { Clock, Plane, Route, TrendingUp, Sparkles } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   Cell, CartesianGrid, ReferenceLine,
 } from 'recharts'
 import { PERIODS, buildRange } from '../lib/periods'
+
+// Puxa MapLibre — carrega só quando o usuário abre a retrospectiva
+const Retrospective = lazy(() => import('../components/retrospective/Retrospective'))
 
 // ── Tooltip customizado ─────────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label, unit = '' }) => {
@@ -43,6 +46,7 @@ export default function Statistics() {
   const [data, setData]             = useState(null)
   const [loading, setLoading]       = useState(true)
   const [byYear, setByYear]         = useState([])   // carreira: horas por ano (independe do período)
+  const [retroOpen, setRetroOpen]   = useState(false)
 
   const fetchData = async (pid, from, to) => {
     setLoading(true)
@@ -101,6 +105,15 @@ export default function Statistics() {
               {p.label}
             </button>
           ))}
+
+          <button
+            onClick={() => setRetroOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                       bg-amber-500/15 text-amber-300 border border-amber-500/30
+                       hover:bg-amber-500/25 transition-colors"
+          >
+            <Sparkles size={14} /> Retrospectiva
+          </button>
 
           {period === 'custom' && (
             <div className="flex items-center gap-2 ml-2">
@@ -297,6 +310,12 @@ export default function Statistics() {
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-slate-500" /> Horas anteriores</span>
           </div>
         </ChartCard>
+      )}
+
+      {retroOpen && (
+        <Suspense fallback={null}>
+          <Retrospective open onClose={() => setRetroOpen(false)} />
+        </Suspense>
       )}
     </div>
   )

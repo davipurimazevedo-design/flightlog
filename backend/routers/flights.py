@@ -42,6 +42,20 @@ def _seconds_to_hours(seconds) -> float:
     return float(seconds or 0) / 3600
 
 
+def haversine_nm(orig, dest) -> float:
+    """Distância em milhas náuticas entre dois aeroportos (haversine).
+
+    Estava aninhada em get_detailed_stats; subiu para o módulo para o /timeline
+    reusar a mesma conta (mesmo raio, mesmo arredondamento).
+    """
+    R = 3440.065
+    lat1, lon1 = math.radians(orig.latitude), math.radians(orig.longitude)
+    lat2, lon2 = math.radians(dest.latitude), math.radians(dest.longitude)
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
 def _validate_times(payload: FlightCreate):
     """Pouso deve ser depois da decolagem. Voos que cruzam meia-noite chegam aqui
     com o arrival_time já no dia seguinte (frontend e bot fazem esse ajuste)."""
@@ -293,14 +307,6 @@ def get_detailed_stats(
         ap.icao: ap for ap in db.query(Airport).filter(Airport.icao.in_(icao_set)).all()
     }
 
-    def haversine_nm(orig, dest):
-        R = 3440.065
-        lat1, lon1 = math.radians(orig.latitude), math.radians(orig.longitude)
-        lat2, lon2 = math.radians(dest.latitude), math.radians(dest.longitude)
-        dlat, dlon = lat2 - lat1, lon2 - lon1
-        a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
-        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
     total_nm = 0
     for f in flights:
         orig = airport_map_nm.get(f.origin_icao)
@@ -423,6 +429,65 @@ def get_map_routes(
             "total_minutes": total_minutes,
         })
     return result
+
+
+@router.get("/timeline")
+def get_flights_timeline(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db),
+    owner: Profile | None = Depends(require_active),
+):
+    """Voos do período em ORDEM CRONOLÓGICA, com coordenadas — base da retrospectiva.
+
+    Diferente de /map-routes, que normaliza o par de ICAOs (SBBR→SBCC e SBCC→SBBR
+    colapsam na mesma entrada) e descarta a data: aqui cada voo é uma perna, na ordem
+    em que foi voada, para a animação desenhar rota a rota.
+    """
+    q = _scope(db.query(Flight), owner)
+    if date_from:
+        q = q.filter(Flight.date >= datetime.fromisoformat(date_from))
+    if date_to:
+        q = q.filter(Flight.date <= datetime.fromisoformat(date_to))
+    flights = q.order_by(Flight.date.asc(), Flight.departure_time.asc()).limit(5000).all()
+    if not flights:
+        return {"flights": [], "skipped_no_airport": 0}
+
+    # Pré-carrega aeroportos e aeronaves sem N+1 (mesmo padrão de /map-routes)
+    icao_set = {f.origin_icao for f in flights} | {f.destination_icao for f in flights}
+    airport_map = {
+        ap.icao: ap for ap in db.query(Airport).filter(Airport.icao.in_(icao_set)).all()
+    }
+    ac_ids = {f.aircraft_id for f in flights}
+    aircraft_map = {
+        ac.id: ac for ac in db.query(Aircraft).filter(Aircraft.id.in_(ac_ids)).all()
+    }
+
+    legs, skipped = [], 0
+    for f in flights:
+        orig = airport_map.get(f.origin_icao)
+        dest = airport_map.get(f.destination_icao)
+        if not (orig and dest):
+            # Aeroporto fora da tabela (import legado): não dá para desenhar no mapa.
+            # Contamos para a tela poder avisar, em vez de sumir com o voo em silêncio.
+            skipped += 1
+            continue
+        ac = aircraft_map.get(f.aircraft_id)
+        legs.append({
+            "id": f.id,
+            "date": f.date.isoformat(),
+            "departure_time": f.departure_time.isoformat(),
+            "arrival_time": f.arrival_time.isoformat(),
+            "minutes": round((f.arrival_time - f.departure_time).total_seconds() / 60),
+            "nm": round(haversine_nm(orig, dest)),
+            "origin": {"icao": orig.icao, "name": orig.name,
+                       "lat": orig.latitude, "lng": orig.longitude},
+            "destination": {"icao": dest.icao, "name": dest.name,
+                            "lat": dest.latitude, "lng": dest.longitude},
+            "aircraft": ({"registration": ac.registration, "model": ac.model} if ac else None),
+        })
+
+    return {"flights": legs, "skipped_no_airport": skipped}
 
 
 @router.get("/pending-review", response_model=list[FlightOut])
