@@ -4,42 +4,11 @@
 // é desenhado à mão, na paleta do app.
 import logoSrc from '../../assets/logo.png'
 import { minutesToHHMM } from '../../lib/utils'
+import { COLORS, FONT, loadImage, roundRect, drawCover } from './canvasKit'
 
 const W = 1080, H = 1350          // retrato 4:5 — bom para WhatsApp/Instagram
-const BG = '#0a1628'
-const CARD = '#0c1f3d'
-const BLUE = '#3b82f6'
-const AMBER = '#fbbf24'
-const SLATE = '#94a3b8'
-
-const FONT = "'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
-
-const loadImage = (src) => new Promise((resolve, reject) => {
-  const img = new Image()
-  img.crossOrigin = 'anonymous'
-  img.onload = () => resolve(img)
-  img.onerror = reject
-  img.src = src
-})
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath()
-  ctx.moveTo(x + r, y)
-  ctx.arcTo(x + w, y, x + w, y + h, r)
-  ctx.arcTo(x + w, y + h, x, y + h, r)
-  ctx.arcTo(x, y + h, x, y, r)
-  ctx.arcTo(x, y, x + w, y, r)
-  ctx.closePath()
-}
-
-/** Desenha a imagem cobrindo o retângulo (object-fit: cover), com corte central.
- *  `zoom` > 1 aperta o recorte: as rotas ficam centradas pelo fitBounds, então
- *  aproximar do centro corta a sobra de oceano/borda sem perder conteúdo. */
-function drawCover(ctx, img, x, y, w, h, zoom = 1) {
-  const scale = Math.max(w / img.width, h / img.height) * zoom
-  const dw = img.width * scale
-  const dh = img.height * scale
-  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh)
+const { BG, CARD, BLUE, AMBER, SLATE } = {
+  BG: COLORS.BG, CARD: COLORS.CARD, BLUE: COLORS.BLUE, AMBER: COLORS.AMBER, SLATE: COLORS.SLATE,
 }
 
 /**
@@ -156,14 +125,4 @@ export async function buildRetroCard({ periodLabel, pilotName, stats, mapShot })
   return new Promise((resolve) => c.toBlob(resolve, 'image/png'))
 }
 
-/** Dispara o download do blob (mesmo padrão usado no export de dados). */
-export function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
-}
+export { downloadBlob } from './canvasKit'

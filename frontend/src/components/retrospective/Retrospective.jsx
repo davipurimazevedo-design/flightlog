@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   X, Play, Pause, ChevronLeft, ChevronRight, Download,
-  Plane, Clock, Route as RouteIcon, MapPin, Sparkles, RotateCcw,
+  Plane, Clock, Route as RouteIcon, MapPin, Sparkles, RotateCcw, Film, Share2,
 } from 'lucide-react'
 import { Map as MapCanvas, MapArc, MapMarker, MarkerContent, useMap } from '../ui/map'
 import { getFlightsTimeline, getDetailedStats, getHoursByYear } from '../../api'
@@ -9,6 +9,8 @@ import { buildYearRange, buildMonthRange, MONTH_LABELS } from '../../lib/periods
 import { minutesToHHMM, hoursToHHMM, fmtDateBR } from '../../lib/utils'
 import { useAuth } from '../../context/AuthContext'
 import { buildRetroCard, downloadBlob } from './retroCard'
+import { prepareScene } from './videoRenderer'
+import { renderVideo, detectEncoder } from './encodeVideo'
 
 const MAP = 1, HIGHLIGHTS = 2, PLACES = 3, CARD = 4
 const LAST = CARD
@@ -87,6 +89,11 @@ export default function Retrospective({ open, onClose }) {
   const [revealed, setRevealed] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [canVideo, setCanVideo] = useState(false)
+  const [videoStage, setVideoStage] = useState('idle')   // idle|preparing|encoding|ready|error
+  const [videoProgress, setVideoProgress] = useState(0)
+  const [videoFile, setVideoFile] = useState(null)
+  const [videoMsg, setVideoMsg] = useState('')
 
   const mapRef = useRef(null)
   const handleMapReady = useCallback((m) => { mapRef.current = m }, [])
@@ -108,6 +115,12 @@ export default function Retrospective({ open, onClose }) {
       })
       .catch(() => setYears([]))
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  // O aparelho consegue gerar MP4? Se não, escondemos o botão (o PNG continua valendo).
+  useEffect(() => {
+    if (!open) return
+    detectEncoder().then(k => setCanVideo(Boolean(k))).catch(() => setCanVideo(false))
   }, [open])
 
   // Esc fecha; trava o scroll do fundo
@@ -205,6 +218,12 @@ export default function Retrospective({ open, onClose }) {
 
   const currentDate = shown.length ? fmtDateBR(shown[shown.length - 1].date) : ''
 
+  const totalAirports = useMemo(() => {
+    const set = new Set()
+    for (const f of (data?.flights || [])) { set.add(f.origin.icao); set.add(f.destination.icao) }
+    return set.size
+  }, [data])
+
   const summary = data?.summary ?? {}
 
   const handleDownload = async () => {
@@ -242,8 +261,47 @@ export default function Retrospective({ open, onClose }) {
     }
   }
 
+  const handleVideo = async () => {
+    setVideoStage('preparing'); setVideoProgress(0); setVideoMsg(''); setVideoFile(null)
+    try {
+      // Renderiza o mapa offscreen em 9:16 e projeta os aeroportos em pixels
+      const scene = await prepareScene({ flights: data.flights })
+      setVideoStage('encoding')
+      const info = {
+        periodLabel,
+        pilotName: profile?.full_name || '',
+        summary,
+        totals: {
+          voos: total,
+          minutos: data.flights.reduce((acc, f) => acc + (f.minutes || 0), 0),
+          nm: data.flights.reduce((acc, f) => acc + (f.nm || 0), 0),
+          aeroportos: totalAirports,
+        },
+      }
+      const { blob } = await renderVideo({ scene, info, onProgress: setVideoProgress })
+      const slug = periodLabel.replace(/\s+/g, '-').toLowerCase()
+      setVideoFile(new File([blob], `flightlog-retrospectiva-${slug}.mp4`, { type: 'video/mp4' }))
+      setVideoStage('ready')
+    } catch (e) {
+      setVideoStage('error')
+      setVideoMsg(e?.message || 'Não consegui gerar o vídeo.')
+    }
+  }
+
+  const shareVideo = async () => {
+    if (!videoFile) return
+    try {
+      if (navigator.canShare?.({ files: [videoFile] })) {
+        await navigator.share({ files: [videoFile], title: `Retrospectiva ${periodLabel}` })
+      } else {
+        downloadBlob(videoFile, videoFile.name)
+      }
+    } catch { /* usuário cancelou a folha de compartilhamento */ }
+  }
+
   const reset = () => {
     setData(null); setSlide(MAP); setRevealed(0); setPlaying(false)
+    setVideoStage('idle'); setVideoFile(null); setVideoProgress(0); setVideoMsg('')
   }
 
   if (!open) return null
@@ -432,6 +490,65 @@ export default function Retrospective({ open, onClose }) {
                       são lançadas por ano.
                     </p>
                   )}
+                  {canVideo && (
+                    <div className="mb-4 pb-4 border-b border-white/10">
+                      {videoStage === 'idle' && (
+                        <button onClick={handleVideo}
+                          className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-300
+                                     border border-amber-500/30 hover:bg-amber-500/25
+                                     px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                          <Film size={16} /> Gerar vídeo (20s, 9:16)
+                        </button>
+                      )}
+
+                      {(videoStage === 'preparing' || videoStage === 'encoding') && (
+                        <div>
+                          <p className="text-xs text-slate-400 mb-2">
+                            {videoStage === 'preparing'
+                              ? 'Preparando o mapa...'
+                              : `Gerando vídeo... ${Math.round(videoProgress * 100)}%`}
+                          </p>
+                          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                            <div className="h-full bg-amber-400 transition-[width] duration-200"
+                              style={{ width: `${videoStage === 'preparing' ? 8 : Math.max(8, videoProgress * 100)}%` }} />
+                          </div>
+                        </div>
+                      )}
+
+                      {videoStage === 'ready' && videoFile && (
+                        <>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            <button onClick={shareVideo}
+                              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700
+                                         text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                              <Share2 size={16} /> Compartilhar vídeo
+                            </button>
+                            <button onClick={() => downloadBlob(videoFile, videoFile.name)}
+                              className="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10
+                                         text-slate-200 border border-white/10 px-4 py-2.5 rounded-lg text-sm transition-colors">
+                              <Download size={15} /> Baixar ({(videoFile.size / 1048576).toFixed(1)} MB)
+                            </button>
+                          </div>
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            No WhatsApp o vídeo aparece direto na lista de compartilhamento. Para o
+                            Stories, baixe e escolha o vídeo dentro do Instagram.
+                          </p>
+                        </>
+                      )}
+
+                      {videoStage === 'error' && (
+                        <div>
+                          <p className="text-xs text-red-400 mb-2">{videoMsg}</p>
+                          <button onClick={handleVideo}
+                            className="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10
+                                       text-slate-200 border border-white/10 px-3 py-2 rounded-lg text-xs transition-colors">
+                            <RotateCcw size={14} /> Tentar de novo
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-2">
                     <button onClick={handleDownload} disabled={saving}
                       className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
