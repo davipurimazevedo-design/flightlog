@@ -16,7 +16,7 @@ import json
 import logging
 import tempfile
 import httpx
-from datetime import datetime, timezone
+from datetime import datetime
 from dotenv import load_dotenv
 from groq import Groq
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup

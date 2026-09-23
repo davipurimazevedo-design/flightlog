@@ -131,7 +131,7 @@ Depois do deploy, anote a URL: `https://flightlog-api.onrender.com` → vai em `
 ## 6. (Opcional) Preload de aeroportos
 Os aeroportos entram sozinhos conforme você registra voos, mas dá pra pré-carregar
 os principais do Brasil chamando uma vez (autenticado como admin, ou via curl):
-`POST https://flightlog-api.onrender.com/airports/seed`
+`POST https://SUA-API.onrender.com/airports/seed`
 
 ---
 

@@ -13,7 +13,8 @@ import config
 import routers.admin as admin_mod
 from models import Profile, Aircraft, Flight
 
-SECRET = "test-jwt-secret"
+# >= 32 bytes: abaixo disso o PyJWT emite InsecureKeyLengthWarning a cada uso.
+SECRET = "test-jwt-secret-com-32-bytes-ou-mais"
 
 
 @pytest.fixture()

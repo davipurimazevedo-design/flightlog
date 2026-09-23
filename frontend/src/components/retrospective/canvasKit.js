@@ -33,16 +33,6 @@ export function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath()
 }
 
-/** Desenha a imagem cobrindo o retângulo (object-fit: cover), com corte central.
- *  `zoom` > 1 aperta o recorte: as rotas ficam centradas pelo fitBounds, então
- *  aproximar do centro corta a sobra de oceano/borda sem perder conteúdo. */
-export function drawCover(ctx, img, x, y, w, h, zoom = 1) {
-  const scale = Math.max(w / img.width, h / img.height) * zoom
-  const dw = img.width * scale
-  const dh = img.height * scale
-  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh)
-}
-
 /** Dispara o download do blob (anexa ao DOM antes do clique — necessário no Firefox). */
 export function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob)
@@ -78,8 +68,3 @@ export function voltasAoMundo(nm) {
 
 /** Interpolação suave usada nas transições entre trechos do vídeo. */
 export const easeOut = (t) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3)
-
-/** Fade de entrada/saída de um trecho: devolve 0..1. */
-export function fadeIn(t, dur = 0.4) {
-  return easeOut(t / dur)
-}

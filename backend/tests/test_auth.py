@@ -15,7 +15,8 @@ import pytest
 import config
 from models import Profile
 
-SECRET = "test-jwt-secret"
+# >= 32 bytes: abaixo disso o PyJWT emite InsecureKeyLengthWarning a cada uso.
+SECRET = "test-jwt-secret-com-32-bytes-ou-mais"
 
 
 @pytest.fixture()

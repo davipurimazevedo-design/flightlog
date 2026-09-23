@@ -13,8 +13,6 @@ load_dotenv() em bot.py acha o .env em telegram-bot/ automaticamente.
 """
 import sys
 import os
-import importlib
-import unittest.mock
 from datetime import datetime
 
 # Adiciona telegram-bot/ ao path para importar bot.py
