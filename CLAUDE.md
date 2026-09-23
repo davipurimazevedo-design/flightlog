@@ -8,7 +8,7 @@
   - Bug fix / ajuste pequeno → PATCH (ex: v2.0.0 → v2.0.1)
   - Nova funcionalidade → MINOR (ex: v2.0.0 → v2.1.0)
   - Redesign / mudança estrutural grande → MAJOR (ex: v2.0.0 → v3.0.0)
-- Versão atual: **v2.13.1**
+- Versão atual: **v2.14.0**
 
 ## Deploy (nuvem) — web app
 - Frontend na **Vercel**, backend FastAPI no **Render**, banco+auth no **Supabase** (Postgres).
@@ -31,7 +31,7 @@
   `__pycache__`, venvs quebradas, arquivos temporários/estranhos (ex: stray files
   criados por bugs em scripts .bat).
 - **Scripts de teste manuais**: o usuário gosta de `.bat` simples para simular
-  cenários (ex: `test-kill-backend.bat`, `test-kill-bot.bat`) — preferir essa
+  cenários (ex: `test-kill-backend.bat`) — preferir essa
   abordagem prática a setups de teste pesados quando o objetivo é validação manual rápida.
 - **Explicações**: quando pedir para explicar algo "como se fosse pra alguém que
   nunca viu", usar analogias, diagramas ASCII e fluxos passo-a-passo em vez de

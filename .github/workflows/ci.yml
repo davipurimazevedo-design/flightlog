@@ -19,15 +19,10 @@ jobs:
           python-version: '3.12'
           cache: pip
       - name: Instala dependências
-        run: pip install -r backend/requirements.txt -r telegram-bot/requirements.txt pytest
+        run: pip install -r backend/requirements.txt pytest
       - name: Testes
         working-directory: backend
         run: python -m pytest
-        env:
-          # bot.py instancia o cliente Groq no import — chaves fictícias bastam
-          # (os testes só exercitam funções puras, sem chamadas externas)
-          GROQ_API_KEY: ci-dummy
-          TELEGRAM_TOKEN: ci-dummy
       - name: Auditoria de dependências (não bloqueante)
         continue-on-error: true
         run: |
@@ -60,14 +55,12 @@ jobs:
           python-version: '3.12'
           cache: pip
       - name: Instala dependências
-        run: pip install -r backend/requirements.txt -r telegram-bot/requirements.txt pytest
+        run: pip install -r backend/requirements.txt pytest
       - name: Testes (dialeto Postgres)
         working-directory: backend
         run: python -m pytest
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flightlog_test
-          GROQ_API_KEY: ci-dummy
-          TELEGRAM_TOKEN: ci-dummy
 
   frontend:
     name: Frontend (vitest + build)

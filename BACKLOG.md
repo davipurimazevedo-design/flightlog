@@ -18,6 +18,24 @@ Quando um item for feito, tire daqui e (se valer) registre no `CHANGELOG` do com
   uma trilha AAC junto do H.264, e trilha própria tem questão de direitos autorais.
   Só encarar se o vídeo virar algo central.
 
+## Herança do bot do Telegram
+
+O bot foi aposentado na v2.14.0, mas o caminho que ele alimentava continua de pé:
+
+- [ ] **Decidir o que fazer com a revisão de voos pendentes.** Sem o bot, nada mais
+  cria voo com `source="telegram"` e `needs_review=True`, então este fluxo ficou
+  inalcançável para voos novos:
+  - front: `components/PendingReviewModal.jsx` + `hooks/usePendingFlights.js`
+    (que faz polling) + o teste do modal
+  - back: `GET /flights/pending-review` e o mark-reviewed em `routers/flights.py`
+  - banco: colunas `Flight.source` e `Flight.needs_review`
+
+  **As colunas devem ficar de qualquer forma** — voos antigos registrados pelo bot
+  ainda as usam, e derrubá-las exigiria migração destrutiva no Postgres.
+  A dúvida é só se vale remover a UI e os endpoints, ou deixar parados caso um dia
+  entre outra fonte de voo (importador, integração). Enquanto ficarem, o polling
+  do `usePendingFlights` segue rodando e sempre voltando vazio.
+
 ## Performance
 
 - [ ] **`GROUP BY` nas estatísticas** — `/flights/stats` e `/flights/detailed-stats` carregam
@@ -46,3 +64,5 @@ Quando um item for feito, tire daqui e (se valer) registre no `CHANGELOG` do com
 - Retrospectiva animada, card PNG e vídeo MP4 9:16 (v2.11.0 → v2.12.x)
 - CORS nas respostas de erro 500/429 e suíte rodando também no Postgres no CI
 - "Voltas ao mundo" no card e no vídeo (v2.13.0)
+- Higiene geral: código morto, 456 MB de `node_modules` órfão do Electron (v2.13.1)
+- Bot do Telegram aposentado: pasta, 36 testes e passos de CI removidos (v2.14.0)
