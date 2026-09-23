@@ -58,6 +58,24 @@ export function downloadBlob(blob, filename) {
 /** Milhas náuticas → quilômetros (1 NM = 1,852 km). */
 export const nmToKm = (nm) => Math.round((nm || 0) * 1.852)
 
+/** Circunferência da Terra no equador, em NM (40.075 km ÷ 1,852). */
+const VOLTA_AO_MUNDO_NM = 21639
+
+/**
+ * Distância traduzida em "voltas ao mundo", já formatada em pt-BR.
+ * Devolve null abaixo de 0,01 volta: "0,00x" não diz nada a ninguém, e nos
+ * primeiros segundos do vídeo o contador ainda está somando os voos.
+ */
+export function voltasAoMundo(nm) {
+  const voltas = (nm || 0) / VOLTA_AO_MUNDO_NM
+  if (voltas < 0.01) return null
+  const casas = voltas < 1 ? 2 : 1   // 0,43x precisa de duas; 1,8x fica melhor com uma
+  return voltas.toLocaleString('pt-BR', {
+    minimumFractionDigits: casas,
+    maximumFractionDigits: casas,
+  })
+}
+
 /** Interpolação suave usada nas transições entre trechos do vídeo. */
 export const easeOut = (t) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3)
 

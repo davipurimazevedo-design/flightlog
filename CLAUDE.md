@@ -6,13 +6,17 @@
   - Bug fix / ajuste pequeno → PATCH (ex: v2.0.0 → v2.0.1)
   - Nova funcionalidade → MINOR (ex: v2.0.0 → v2.1.0)
   - Redesign / mudança estrutural grande → MAJOR (ex: v2.0.0 → v3.0.0)
-- Versão atual: **v2.12.3**
+- Versão atual: **v2.13.0**
 
 ## Deploy (nuvem) — web app
 - Frontend na **Vercel**, backend FastAPI no **Render**, banco+auth no **Supabase** (Postgres).
 - **`git push` na branch `master` → deploy automático** na Vercel e no Render (~1-2 min). Não há mais instalador/Electron.
-- Front: `https://flightlog-five.vercel.app` · API: `https://flightlog-api-owav.onrender.com`
+- Front: `https://flightlogbrasil.vercel.app` · API: `https://flightlog-api-owav.onrender.com`
 - Guia de variáveis/deploy: `DEPLOY.md`. Auth valida JWT do Supabase via JWKS (ES256); `AUTH_ENABLED` liga quando `SUPABASE_URL` está setada.
+
+## Backlog
+- Ideias e dívidas pendentes ficam em `BACKLOG.md` — consultar antes de sugerir
+  "próximos passos", e mover para a seção "Feito" quando entregar.
 
 ## Preferências de trabalho (Davi)
 - **Mudanças visuais/alinhamento**: SEMPRE pedir referência visual (print, mockup,

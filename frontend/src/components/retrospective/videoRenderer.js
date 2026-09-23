@@ -6,7 +6,7 @@
 // cada quadro é só desenho 2D — determinístico e barato.
 import logoSrc from '../../assets/logo.png'
 import { minutesToHHMM, hoursToHHMM, fmtDateBR } from '../../lib/utils'
-import { COLORS, FONT, loadImage, roundRect, easeOut, nmToKm } from './canvasKit'
+import { COLORS, FONT, loadImage, roundRect, easeOut, nmToKm, voltasAoMundo } from './canvasKit'
 import { renderMapSnapshot, drawRouteNetwork, drawOverlayPanel } from './mapScene'
 
 export { waitVisible } from './mapScene'
@@ -83,6 +83,15 @@ function drawCounters(ctx, { voos, minutos, nm }) {
       ctx.fillText(sub, cx, 1584)
     }
   })
+
+  // Detalhe lúdico: sobe junto com o contador enquanto o mapa se desenha.
+  const voltas = voltasAoMundo(nm)
+  if (voltas) {
+    ctx.textAlign = 'center'
+    ctx.fillStyle = 'rgba(251,191,36,0.9)'
+    ctx.font = `600 26px ${FONT}`
+    ctx.fillText(`${voltas}x a volta ao mundo`, W / 2, 1626)
+  }
 }
 
 /** Etiqueta da data, ancorada no canto superior direito do mapa. */
@@ -169,9 +178,11 @@ export function drawFrame(ctx, scene, info, t) {
     ]], MAP, easeOut((t - T_HL_END) / 0.5))
   }
 
-  // Rodapé discreto, presente o tempo todo
+  // Rodapé discreto, presente o tempo todo. Desceu para abrir espaço para a
+  // linha das voltas ao mundo — segue dentro da zona segura do Stories (>1670
+  // é onde o Instagram desenha a caixa de resposta).
   ctx.textAlign = 'center'
   ctx.fillStyle = 'rgba(148,163,184,0.7)'
   ctx.font = `400 26px ${FONT}`
-  ctx.fillText('flightlogbrasil.vercel.app', W / 2, 1640)
+  ctx.fillText('flightlogbrasil.vercel.app', W / 2, 1664)
 }

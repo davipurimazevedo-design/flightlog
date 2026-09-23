@@ -5,7 +5,7 @@
 // faixa larga do card cortava as rotas.
 import logoSrc from '../../assets/logo.png'
 import { minutesToHHMM } from '../../lib/utils'
-import { COLORS, FONT, loadImage, roundRect, nmToKm } from './canvasKit'
+import { COLORS, FONT, loadImage, roundRect, nmToKm, voltasAoMundo } from './canvasKit'
 import { renderMapSnapshot, drawRouteNetwork } from './mapScene'
 
 const W = 1080, H = 1350          // retrato 4:5 — o mais alto que o Instagram aceita no feed
@@ -120,6 +120,14 @@ export async function buildRetroCard({ periodLabel, pilotName, stats, flights, s
   })
 
   // ── Rodapé ─────────────────────────────────────────────────────────────────
+  // Na mesma linha-base: o detalhe lúdico à esquerda, o endereço à direita.
+  const voltas = voltasAoMundo(stats.nm)
+  if (voltas) {
+    ctx.textAlign = 'left'
+    ctx.fillStyle = 'rgba(251,191,36,0.9)'
+    ctx.font = `600 22px ${FONT}`
+    ctx.fillText(`${voltas}x a volta ao mundo`, M, 1322)
+  }
   ctx.textAlign = 'right'
   ctx.fillStyle = 'rgba(148,163,184,0.7)'
   ctx.font = `400 22px ${FONT}`
