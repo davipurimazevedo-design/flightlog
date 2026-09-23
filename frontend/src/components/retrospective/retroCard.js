@@ -5,7 +5,7 @@
 // faixa larga do card cortava as rotas.
 import logoSrc from '../../assets/logo.png'
 import { minutesToHHMM } from '../../lib/utils'
-import { COLORS, FONT, loadImage, roundRect } from './canvasKit'
+import { COLORS, FONT, loadImage, roundRect, nmToKm } from './canvasKit'
 import { renderMapSnapshot, drawRouteNetwork } from './mapScene'
 
 const W = 1080, H = 1350          // retrato 4:5 — o mais alto que o Instagram aceita no feed
@@ -71,7 +71,6 @@ export async function buildRetroCard({ periodLabel, pilotName, stats, flights, s
   // ── Destaques: uma linha cada, para não roubar área do mapa ────────────────
   const destaques = []
   if (stats.longest) destaques.push(['VOO MAIS LONGO', stats.longest])
-  if (stats.topRoute) destaques.push(['ROTA MAIS FREQUENTE', stats.topRoute])
   destaques.forEach(([label, value], i) => {
     const y = 956 + i * 48
     ctx.textAlign = 'left'
@@ -88,14 +87,16 @@ export async function buildRetroCard({ periodLabel, pilotName, stats, flights, s
   const cells = [
     ['VOOS', String(stats.voos)],
     ['HORAS VOADAS', minutesToHHMM(stats.minutos)],
-    ['MILHAS NÁUTICAS', `${stats.nm.toLocaleString('pt-BR')} NM`],
+    // NM é a unidade do piloto; o km ao lado, discreto, traduz para quem não é do meio.
+    ['DISTÂNCIA TOTAL', `${stats.nm.toLocaleString('pt-BR')} NM`,
+      `${nmToKm(stats.nm).toLocaleString('pt-BR')} km`],
     ['AEROPORTOS', String(stats.aeroportos)],
   ]
   const gridY = 1044
   const cellW = (W - M * 2 - 24) / 2
   const cellH = 110
   ctx.textAlign = 'left'
-  cells.forEach(([label, value], i) => {
+  cells.forEach(([label, value, sub], i) => {
     const x = M + (i % 2) * (cellW + 24)
     const y = gridY + Math.floor(i / 2) * (cellH + 16)
     ctx.fillStyle = COLORS.CARD
@@ -110,6 +111,12 @@ export async function buildRetroCard({ periodLabel, pilotName, stats, flights, s
     ctx.fillStyle = COLORS.WHITE
     ctx.font = `700 50px ${FONT}`
     ctx.fillText(value, x + 26, y + 94)
+    if (sub) {
+      const larguraValor = ctx.measureText(value).width   // com a fonte do valor ainda ativa
+      ctx.fillStyle = 'rgba(148,163,184,0.8)'
+      ctx.font = `600 20px ${FONT}`
+      ctx.fillText(sub, x + 26 + larguraValor + 12, y + 94)
+    }
   })
 
   // ── Rodapé ─────────────────────────────────────────────────────────────────

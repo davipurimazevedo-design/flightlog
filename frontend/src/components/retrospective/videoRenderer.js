@@ -5,8 +5,8 @@
 // Em vez disso o mapa é renderizado UMA vez offscreen (ver mapScene) e daí em diante
 // cada quadro é só desenho 2D — determinístico e barato.
 import logoSrc from '../../assets/logo.png'
-import { minutesToHHMM, fmtDateBR } from '../../lib/utils'
-import { COLORS, FONT, loadImage, roundRect, easeOut } from './canvasKit'
+import { minutesToHHMM, hoursToHHMM, fmtDateBR } from '../../lib/utils'
+import { COLORS, FONT, loadImage, roundRect, easeOut, nmToKm } from './canvasKit'
 import { renderMapSnapshot, drawRouteNetwork, drawOverlayPanel } from './mapScene'
 
 export { waitVisible } from './mapScene'
@@ -55,20 +55,33 @@ function drawBrand(ctx, scene) {
 
 function drawCounters(ctx, { voos, minutos, nm }) {
   const cells = [
-    ['VOOS', String(voos)],
-    ['HORAS', minutesToHHMM(minutos)],
-    ['MILHAS', `${nm.toLocaleString('pt-BR')}`],
+    ['VOOS', String(voos), null],
+    ['HORAS', minutesToHHMM(minutos), null],
+    // NM é a unidade do piloto; o km embaixo, discreto, traduz para quem não é do meio.
+    ['DISTÂNCIA TOTAL', `${nm.toLocaleString('pt-BR')} NM`,
+      `${nmToKm(nm).toLocaleString('pt-BR')} km`],
   ]
   const cw = (W - M * 2) / 3
-  cells.forEach(([label, value], i) => {
+  cells.forEach(([label, value, sub], i) => {
     const cx = M + cw * i + cw / 2
     ctx.textAlign = 'center'
     ctx.fillStyle = COLORS.SLATE
     ctx.font = `600 24px ${FONT}`
     ctx.fillText(label, cx, 1478)
+    // Encolhe a fonte se o número não couber na célula (carreira longa: "123.456 NM")
+    let size = 56
+    ctx.font = `700 ${size}px ${FONT}`
+    while (ctx.measureText(value).width > cw - 16 && size > 34) {
+      size -= 2
+      ctx.font = `700 ${size}px ${FONT}`
+    }
     ctx.fillStyle = COLORS.WHITE
-    ctx.font = `700 62px ${FONT}`
     ctx.fillText(value, cx, 1546)
+    if (sub) {
+      ctx.fillStyle = 'rgba(148,163,184,0.85)'
+      ctx.font = `600 22px ${FONT}`
+      ctx.fillText(sub, cx, 1584)
+    }
   })
 }
 
@@ -142,20 +155,18 @@ export function drawFrame(ctx, scene, info, t) {
 
   drawCounters(ctx, t < T_MAP_END ? acumulado : info.totals)
 
-  // ── Painel sobreposto ao mapa (não deixa metade do quadro vazia) ──
+  // ── Painel sobreposto ao mapa ──
+  // Ordem pensada para o fecho: aeroportos primeiro, e o voo mais longo por último,
+  // que é o destaque com que o vídeo termina.
   if (t >= T_MAP_END && t < T_HL_END) {
-    const linhas = []
-    if (info.summary.longest_flight) {
-      linhas.push(['VOO MAIS LONGO', info.summary.longest_flight.route])
-    }
-    if (info.summary.top_route) {
-      linhas.push(['ROTA MAIS FREQUENTE',
-        `${info.summary.top_route.route} · ${info.summary.top_route.count}x`])
-    }
-    drawOverlayPanel(ctx, linhas, MAP, easeOut((t - T_MAP_END) / 0.5))
-  } else if (t >= T_HL_END) {
     drawOverlayPanel(ctx, [['AEROPORTOS VISITADOS', String(info.totals.aeroportos)]],
-      MAP, easeOut((t - T_HL_END) / 0.5))
+      MAP, easeOut((t - T_MAP_END) / 0.5))
+  } else if (t >= T_HL_END && info.summary.longest_flight) {
+    const voo = info.summary.longest_flight
+    drawOverlayPanel(ctx, [[
+      'VOO MAIS LONGO',
+      `${voo.route} · ${hoursToHHMM(voo.hours)}`,
+    ]], MAP, easeOut((t - T_HL_END) / 0.5))
   }
 
   // Rodapé discreto, presente o tempo todo

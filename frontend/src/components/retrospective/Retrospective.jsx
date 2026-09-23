@@ -233,13 +233,11 @@ export default function Retrospective({ open, onClose }) {
           voos: total,
           minutos: data.flights.reduce((s, f) => s + (f.minutes || 0), 0),
           nm: data.flights.reduce((s, f) => s + (f.nm || 0), 0),
-          aeroportos: airports.length,
-          aeronaves: aircraftCount,
+          // totalAirports (período inteiro), não `airports` — este último só conta o
+          // que já foi revelado na animação.
+          aeroportos: totalAirports,
           longest: summary.longest_flight
             ? `${summary.longest_flight.route} · ${hoursToHHMM(summary.longest_flight.hours)}`
-            : '',
-          topRoute: summary.top_route
-            ? `${summary.top_route.route} · ${summary.top_route.count}x`
             : '',
         },
       })

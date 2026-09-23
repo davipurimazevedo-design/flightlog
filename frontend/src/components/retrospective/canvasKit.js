@@ -55,6 +55,9 @@ export function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url)
 }
 
+/** Milhas náuticas → quilômetros (1 NM = 1,852 km). */
+export const nmToKm = (nm) => Math.round((nm || 0) * 1.852)
+
 /** Interpolação suave usada nas transições entre trechos do vídeo. */
 export const easeOut = (t) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3)
 
